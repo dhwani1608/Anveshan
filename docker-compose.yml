@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+  # Relational Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: anveshan-postgres
+    environment:
+      POSTGRES_USER: anveshan_user
+      POSTGRES_PASSWORD: anveshan_password
+      POSTGRES_DB: anveshan_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U anveshan_user -d anveshan_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Graph Database
+  neo4j:
+    image: neo4j:5.18.1-community
+    container_name: anveshan-neo4j
+    environment:
+      NEO4J_AUTH: neo4j/anveshan2026
+      NEO4J_PLUGINS: '["apoc"]'
+    ports:
+      - "7474:7474" # HTTP UI
+      - "7687:7687" # Bolt
+    volumes:
+      - neo4j_data:/data
+
+  # FastAPI Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: anveshan-backend
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://anveshan_user:anveshan_password@postgres:5432/anveshan_db
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_USER=neo4j
+      - NEO4J_PASSWORD=anveshan2026
+      - DEFAULT_ORG_ID=PDEU
+      - LLM_PROVIDER=auto
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+
+  # Next.js Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: anveshan-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  neo4j_data:
