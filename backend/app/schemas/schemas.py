@@ -3,7 +3,7 @@ from pydantic import BaseModel, EmailStr
 
 # Auth Schemas
 class LoginRequest(BaseModel):
-    email: EmailStr
+    email: str
     password: str
     organization_id: Optional[str] = "PDEU"
 
