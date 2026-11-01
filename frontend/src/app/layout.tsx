@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
+import { ThemeProvider } from "@/context/ThemeContext";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { FloatingAssistant } from "@/components/FloatingAssistant";
@@ -19,12 +20,14 @@ export default function RootLayout({
     <html lang="en">
       <body className="bg-slate-50 text-slate-800 min-h-screen flex flex-col font-sans selection:bg-[#e87722] selection:text-white antialiased">
         <AuthProvider>
-          <Header />
-          <main className="flex-1 flex flex-col">
-            {children}
-          </main>
-          <Footer />
-          <FloatingAssistant />
+          <ThemeProvider>
+            <Header />
+            <main className="flex-1 flex flex-col">
+              {children}
+            </main>
+            <Footer />
+            <FloatingAssistant />
+          </ThemeProvider>
         </AuthProvider>
       </body>
     </html>
