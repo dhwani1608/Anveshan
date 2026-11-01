@@ -12,8 +12,16 @@ import ssl
 import io
 import urllib.request
 from typing import Dict, List, Any, Optional
-from bs4 import BeautifulSoup
-from pypdf import PdfReader
+
+try:
+    from bs4 import BeautifulSoup
+except ImportError:
+    BeautifulSoup = None
+
+try:
+    from pypdf import PdfReader
+except ImportError:
+    PdfReader = None
 
 # Bypass SSL certificate verification for university servers if needed
 SSL_CTX = ssl.create_default_context()
@@ -30,6 +38,8 @@ def clean_html_to_markdown(html_text: str) -> str:
     """Converts HTML snippets (tables, lists, paragraphs) into clean markdown."""
     if not html_text:
         return ""
+    if BeautifulSoup is None:
+        return re.sub(r'<[^>]+>', ' ', html_text)
     soup = BeautifulSoup(html_text, "html.parser")
     
     # Process tables into markdown tables
@@ -115,6 +125,9 @@ def fetch_next_data(url: str) -> Dict[str, Any]:
 
 def fetch_pdf_text(url: str, max_pages: int = 25) -> str:
     """Downloads and extracts text from an online PDF."""
+    if PdfReader is None:
+        print(f"[Scraper] Warning: pypdf not installed, skipping online PDF fetch for {url}")
+        return ""
     try:
         req = urllib.request.Request(url, headers=HEADERS)
         with urllib.request.urlopen(req, context=SSL_CTX, timeout=20) as resp:
