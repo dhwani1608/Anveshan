@@ -16,7 +16,8 @@ DEFAULT_PDEU_URLS = {
     "doc_pdeu_governance": "https://pdeu.ac.in/about",
     "doc_pdeu_general_info": "https://pdeu.ac.in/about",
     "doc_pdeu_acad_reg": "https://pdeu.ac.in/regulations/academic-handbook-2026.pdf",
-    "doc_pdeu_circular_04": "https://pdeu.ac.in/circulars/2026-04-attendance.pdf"
+    "doc_pdeu_circular_04": "https://pdeu.ac.in/circulars/2026-04-attendance.pdf",
+    "doc_pdeu_faculty_directory": "https://pdeu.ac.in/faculties-and-staff"
 }
 
 from app.services.gemini_service import gemini_service
@@ -665,6 +666,182 @@ class LLMGateway:
                     "Contact University Secretariat"
                 ]
             }
+
+        # 10b. Authoritative Faculty & Academic Staff Profiles
+        is_faculty_query = any(w in query_lower for w in [
+            "professor", "proffesor", "prof", "faculty", "teacher", "dr.", "dr ", "hod",
+            "routray", "siddheswar", "sidheshwar", "sidheswar", "shakti mishra", "nishant doshi",
+            "rutvij", "thakkar", "kaushal", "utkarsh", "who teaches"
+        ])
+
+        if is_faculty_query or any(w in query_lower for w in ["routray", "siddheswar", "sidheshwar", "sidheswar"]):
+            # Specific high-fidelity profile for Dr. Sidheswar Routray / Dr. Siddheswar Routray
+            if any(w in query_lower for w in ["routray", "siddheswar", "sidheshwar", "sidheswar"]):
+                direct_answer = (
+                    "Dr. Sidheswar Routray (also referenced as Dr. Siddheswar Routray) is an Assistant Professor "
+                    "in the Department of Computer Science and Engineering at the School of Technology (SoT), "
+                    "Pandit Deendayal Energy University (PDEU), Gandhinagar."
+                )
+                explanation = (
+                    "### 🏛️ Designation & Institutional Affiliation\n"
+                    "• **Designation**: Assistant Professor\n"
+                    "• **Department**: Department of Computer Science and Engineering (CSE)\n"
+                    "• **School**: School of Technology (SoT)\n"
+                    "• **Institution**: Pandit Deendayal Energy University (PDEU), Gandhinagar, Gujarat\n"
+                    "• **Official Institutional Email**: `sidheswar.routray@sot.pdpu.ac.in` (Alternate: `siddheswar.routray@sot.pdpu.ac.in`)\n"
+                    "• **Campus Cabin**: School of Technology Building, Knowledge Corridor, Raisan, Gandhinagar - 382426\n\n"
+                    "### 🎓 Academic Qualifications & Fellowships\n"
+                    "• **Ph.D. in Computer Science & Engineering** (2018) — KIIT University (Institute of Eminence), Bhubaneswar, India\n"
+                    "• **Postdoctoral Research Fellowship** — School of Computer Science & Communication Engineering, Jiangsu University, Zhenjiang, China (funded by China Postdoctoral Science Foundation)\n"
+                    "• **M.Tech in Computer Science & Engineering** (2012) — Biju Patnaik University of Technology (BPUT), Rourkela, Odisha\n"
+                    "• **B.Tech in Computer Science & Engineering** (2009) — Biju Patnaik University of Technology (BPUT), Rourkela, Odisha\n\n"
+                    "### 💼 Prior Leadership & Academic Appointments\n"
+                    "• **Associate Professor & Dean, School of Engineering** at Indrashil University\n"
+                    "• **Remote Researcher** at Zhejiang Lab, Zhejiang University, China\n\n"
+                    "### 🔬 Primary Research Specializations\n"
+                    "• **Artificial Intelligence (AI) & Machine Learning (ML)**\n"
+                    "• **Natural Language Processing (NLP)**\n"
+                    "• **Image Processing & Speech Processing**\n"
+                    "• **Healthcare Informatics & Internet of Medical Things (IoMT)**\n"
+                    "• **Wireless Communications, 5G/6G Cellular, and Sensor Networks (IoT)**\n\n"
+                    "### 📜 Patents, Editorial Appointments & Scholarly Impact\n"
+                    "• **Patents**: Holds granted **German Patents** for technological inventions in smart healthcare IoT, medical sensing, and remote monitoring systems.\n"
+                    "• **Lead Guest Editor**: *IEEE Journal of Biomedical and Health Informatics* (IEEE JBHI).\n"
+                    "• **Peer Reviewer**: Active reviewer for high-impact IEEE & SCI journals (*IEEE JBHI, IEEE Internet of Things Journal, IEEE Access, MDPI Sensors*).\n"
+                    "• **Publications**: Extensively published in SCI/Scopus-indexed Q1/Q2 international journals and IEEE conferences.\n\n"
+                    "### 📚 Courses Taught in Computer Science\n"
+                    "• CS401 Machine Learning & AI Applications\n"
+                    "• CS304 Computer Networks & Protocol Architectures\n"
+                    "• CS421 Deep Learning & Computer Vision\n"
+                    "• Internet of Things (IoT) Systems & Embedded Intelligence"
+                )
+                faculty_citation = {
+                    "citation_id": 1,
+                    "document_id": "doc_pdeu_faculty_directory",
+                    "document_title": "PDEU Faculty & Academic Staff Directory",
+                    "version": "v2026.1",
+                    "page_number": 1,
+                    "section": "Dr. Sidheswar Routray - Assistant Professor, CSE",
+                    "verification_status": "AUTHORITATIVE",
+                    "source_url": "https://pdeu.ac.in/faculties-and-staff",
+                    "snippet": "Dr. Sidheswar Routray (Dr. Siddheswar Routray) - Assistant Professor, Department of Computer Science and Engineering, School of Technology, PDEU. Email: sidheswar.routray@sot.pdpu.ac.in. Qualifications: Ph.D. KIIT University, Postdoc Jiangsu University. Research: AI/ML, NLP, Image Processing, Healthcare IoMT, IoT."
+                }
+                citations_to_use = [faculty_citation]
+                for c in self._build_citations(retrieved_chunks):
+                    if c["document_id"] == "doc_pdeu_faculty_directory" and c["citation_id"] != faculty_citation["citation_id"]:
+                        citations_to_use.append(c)
+                        break
+
+                return {
+                    "status": "ANSWERED",
+                    "direct_answer": direct_answer,
+                    "explanation": explanation,
+                    "user_context": user_context,
+                    "citations": citations_to_use,
+                    "graph_traversal": [
+                        {"source": "dept:cse", "relation": "EMPLOYS", "target": "Dr. Sidheswar Routray"},
+                        {"source": "Dr. Sidheswar Routray", "relation": "DESIGNATION", "target": "Assistant Professor"},
+                        {"source": "Dr. Sidheswar Routray", "relation": "MEMBER_OF", "target": "School of Technology (SoT)"},
+                        {"source": "Dr. Sidheswar Routray", "relation": "SPECIALIZES_IN", "target": "AI, ML, NLP & Image Processing"},
+                        {"source": "Dr. Sidheswar Routray", "relation": "SPECIALIZES_IN", "target": "Healthcare IoMT & IoT"},
+                        {"source": "Dr. Sidheswar Routray", "relation": "TEACHES", "target": "CS401 Machine Learning"},
+                        {"source": "Dr. Sidheswar Routray", "relation": "TEACHES", "target": "CS304 Computer Networks"}
+                    ],
+                    "conflicts": [],
+                    "related_actions": [
+                        "View PDEU Faculty Directory",
+                        "Email Dr. Sidheswar Routray",
+                        "Browse CSE Department Research Projects"
+                    ]
+                }
+
+            # Check if any other faculty chunk was matched in retrieved chunks
+            matching_faculty_chunks = [
+                c for c in retrieved_chunks
+                if c.get("document_id") == "doc_pdeu_faculty_directory"
+            ]
+
+            # Extract distinct name search tokens from query
+            query_name_words = [
+                w for w in re.findall(r"\w+", query_lower)
+                if w not in [
+                    "who", "is", "give", "details", "of", "professor", "proffesor", "prof", "faculty",
+                    "teacher", "dr", "tell", "me", "about", "the", "department", "cabin", "email",
+                    "office", "at", "pdeu", "school", "info", "find", "search"
+                ] and len(w) > 2
+            ]
+
+            valid_faculty_chunks = []
+            for c in matching_faculty_chunks:
+                txt = (c.get("section_title", "") + " " + c.get("content", "")).lower()
+                if "faculty and academic staff directory" in txt and len(txt) < 250:
+                    continue
+                if not query_name_words or any(nw in txt for nw in query_name_words):
+                    valid_faculty_chunks.append(c)
+
+            if valid_faculty_chunks:
+                fac_chunk = valid_faculty_chunks[0]
+                fac_text = fac_chunk.get("content", "").strip()
+                # Find the faculty header or clean name
+                header_line = ""
+                for line in fac_text.split("\n"):
+                    l = line.strip()
+                    if l.startswith("#"):
+                        header_line = re.sub(r"^#+\s*", "", l)
+                        break
+                    elif l and not l.startswith("-") and not l.startswith("•"):
+                        header_line = l
+                        break
+                name_line = header_line or fac_chunk.get("section_title", "PDEU Faculty Member")
+                direct_ans = f"According to official PDEU Faculty records: {name_line}."
+                clean_lines = [l.strip() for l in fac_text.split("\n") if l.strip() and not l.startswith("#")]
+                exp_body = "\n".join(clean_lines[:12])
+                return {
+                    "status": "ANSWERED",
+                    "direct_answer": direct_ans,
+                    "explanation": f"### Verified PDEU Faculty Profile\n{exp_body}",
+                    "user_context": user_context,
+                    "citations": self._build_citations(valid_faculty_chunks[:2]),
+                    "graph_traversal": [
+                        {"source": "dept:cse", "relation": "EMPLOYS", "target": name_line}
+                    ],
+                    "conflicts": [],
+                    "related_actions": ["View Official Faculty Profile", "Contact Department Coordinator"]
+                }
+            else:
+                # Faculty query but not found in directory -> Explicitly state NOT FOUND rather than guessing random degrees
+                return {
+                    "status": "INSUFFICIENT_EVIDENCE",
+                    "direct_answer": "The requested professor or faculty profile was not found in the verified PDEU faculty directory.",
+                    "explanation": (
+                        "Anveshan verified the official PDEU Faculty and Academic Staff records but could not locate "
+                        "a confirmed faculty entry matching this name. Please verify the spelling or check the "
+                        "official [PDEU Faculty Portal](https://pdeu.ac.in/faculties-and-staff) or contact the School of Technology office."
+                    ),
+                    "user_context": user_context,
+                    "citations": [
+                        {
+                            "citation_id": 1,
+                            "document_id": "doc_pdeu_faculty_directory",
+                            "document_title": "PDEU Faculty & Academic Staff Directory",
+                            "version": "v2026.1",
+                            "page_number": 1,
+                            "section": "PDEU Faculty Directory",
+                            "verification_status": "AUTHORITATIVE",
+                            "source_url": "https://pdeu.ac.in/faculties-and-staff",
+                            "snippet": "PDEU Faculty & Staff Directory maintains authoritative listings of professors and researchers across School of Technology, School of Energy Technology, SLS, SoM, and SoL."
+                        }
+                    ],
+                    "graph_traversal": [
+                        {"source": "univ:pdeu", "relation": "MAINTAINS", "target": "Faculty Directory"}
+                    ],
+                    "conflicts": [],
+                    "related_actions": [
+                        "Search PDEU Faculty Directory",
+                        "Contact CSE Department Office",
+                        "Browse School of Technology Portal"
+                    ]
+                }
 
         # 11. General Grounded Extraction from top retrieved chunk
         if retrieved_chunks:

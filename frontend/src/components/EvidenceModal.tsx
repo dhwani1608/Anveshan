@@ -24,6 +24,7 @@ const DEFAULT_URL_MAP: Record<string, string> = {
   doc_pdeu_general_info: 'https://pdeu.ac.in/about',
   doc_pdeu_acad_reg: 'https://pdeu.ac.in/regulations/academic-handbook-2026.pdf',
   doc_pdeu_circular_04: 'https://pdeu.ac.in/circulars/2026-04-attendance.pdf',
+  doc_pdeu_faculty_directory: 'https://pdeu.ac.in/faculties-and-staff',
 };
 
 export const EvidenceModal: React.FC<EvidenceModalProps> = ({ citation, onClose }) => {
@@ -55,6 +56,9 @@ export const EvidenceModal: React.FC<EvidenceModalProps> = ({ citation, onClose 
     }
     if (title.includes('program') || title.includes('fee')) {
       return 'https://pdeu.ac.in/courses';
+    }
+    if (title.includes('faculty') || title.includes('staff') || title.includes('professor') || title.includes('routray')) {
+      return 'https://pdeu.ac.in/faculties-and-staff';
     }
     return 'https://pdeu.ac.in';
   }, [citation]);

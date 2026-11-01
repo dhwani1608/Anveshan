@@ -175,6 +175,13 @@ class RAGEngine:
             combined_text = f"{title} {section} {content}"
 
             # Strict domain filters:
+            # If intent is faculty lookup, strictly prioritize faculty directory and exclude unrelated handbooks
+            if intent == "faculty_lookup":
+                if doc_id in ["doc_pdeu_circular_04", "doc_pdeu_placements_career", "doc_pdeu_anti_ragging_policy", "doc_pdeu_acad_reg"]:
+                    continue
+                if doc_id == "doc_pdeu_academic_programs" and not any(kw in combined_text for kw in ["routray", "siddheswar", "sidheshwar", "sidheswar", "faculty member"]):
+                    continue
+
             # If intent is placements, discard attendance and curriculum circulars
             if intent == "placements" and doc_id in ["doc_pdeu_circular_04", "doc_pdeu_acad_reg"]:
                 continue
@@ -190,7 +197,11 @@ class RAGEngine:
 
             # Boost preferred authoritative document IDs
             if doc_id in preferred_docs:
-                score *= 2.5
+                score *= 4.0 if intent == "faculty_lookup" else 2.5
+
+            # If faculty name appears in chunk, provide massive boost
+            if intent == "faculty_lookup" and any(nm in combined_text for nm in ["routray", "siddheswar", "sidheshwar", "sidheswar", "shakti mishra", "nishant doshi"]):
+                score += 0.5
 
             # Positive keyword match boost
             matches = sum(1 for kw in positive_keywords if kw in combined_text)

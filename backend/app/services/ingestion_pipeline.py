@@ -36,7 +36,7 @@ class IngestionPipeline:
             chunk_id = f"{document_id}_chunk_{idx+1}"
             
             # Extract section title if present
-            section_match = re.search(r"^(?:###?\s+)?([A-Za-z0-9\s:_-]{3,50})\n", sec)
+            section_match = re.search(r"^(?:#{1,4}\s+)?([^\n]{3,80})\n", sec)
             section_title = section_match.group(1).strip() if section_match else f"Section {idx+1}"
             
             # Approximate page number (roughly 800 characters per page)

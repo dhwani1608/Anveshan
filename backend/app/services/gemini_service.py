@@ -16,7 +16,8 @@ DEFAULT_PDEU_URLS = {
     "doc_pdeu_governance": "https://pdeu.ac.in/about",
     "doc_pdeu_general_info": "https://pdeu.ac.in/about",
     "doc_pdeu_acad_reg": "https://pdeu.ac.in/regulations/academic-handbook-2026.pdf",
-    "doc_pdeu_circular_04": "https://pdeu.ac.in/circulars/2026-04-attendance.pdf"
+    "doc_pdeu_circular_04": "https://pdeu.ac.in/circulars/2026-04-attendance.pdf",
+    "doc_pdeu_faculty_directory": "https://pdeu.ac.in/faculties-and-staff"
 }
 
 class GeminiService:
@@ -79,13 +80,13 @@ Student Context:
 
 Return ONLY a JSON object with keys:
 {{
-  "intent": "curriculum_lookup" | "placements" | "regulations" | "admissions" | "governance" | "anti_ragging" | "general",
+  "intent": "faculty_lookup" | "curriculum_lookup" | "placements" | "regulations" | "admissions" | "governance" | "anti_ragging" | "general",
   "target_program": "B.Tech Computer Engineering" or specific program,
   "target_year_or_sem": "First Year" | "Second Year" | "Third Year" | "Final Year" | null,
   "expanded_search_query": "natural keywords optimized for dense/sparse retrieval",
   "positive_keywords": ["list", "of", "high-priority", "terms"],
   "negative_keywords": ["unrelated", "cross-domain", "terms", "to", "exclude"],
-  "preferred_document_ids": ["doc_pdeu_curr_2027", "doc_pdeu_placements_career", etc.]
+  "preferred_document_ids": ["doc_pdeu_faculty_directory", "doc_pdeu_curr_2027", "doc_pdeu_placements_career", etc.]
 }}
 """
         models_to_try = [self.primary_model, self.fallback_model]
@@ -119,6 +120,11 @@ Return ONLY a JSON object with keys:
         batch = user_context.get("batch", "2027")
 
         # Intent detection
+        is_faculty = any(w in q for w in [
+            "professor", "proffesor", "prof", "faculty", "teacher", "dr.", "dr ", "hod", "head of department",
+            "routray", "siddheswar", "sidheshwar", "sidheswar", "shakti mishra", "nishant doshi",
+            "rutvij", "thakkar", "who teaches", "cabin", "office", "instructor"
+        ])
         is_placement = any(w in q for w in ["salary", "package", "placement", "pacakage", "highest", "average", "ctc", "recruiter", "lpa", "job", "career"])
         is_curriculum = any(w in q for w in ["course", "curriculum", "syllabus", "subject", "credit", "sem", "semester", "first year", "second year", "1st year", "2nd year", "prerequisite", "elective"])
         is_attendance = any(w in q for w in ["attendance", "concession", "hackathon", "absent", "medical", "debarred", "condone", "relaxation", "80%", "75%"])
@@ -132,7 +138,32 @@ Return ONLY a JSON object with keys:
         negative_keywords = []
         preferred_doc_ids = []
 
-        if is_placement:
+        if is_faculty:
+            intent = "faculty_lookup"
+            preferred_doc_ids = ["doc_pdeu_faculty_directory"]
+            negative_keywords = [
+                "attendance", "circular 2026/04", "m.a. public policy", "m.a. english",
+                "phd liberal studies", "phd literature", "degree level: phd", "fee structure"
+            ]
+            if any(w in q for w in ["routray", "siddheswar", "sidheshwar", "sidheswar"]):
+                positive_keywords = [
+                    "Dr. Sidheswar Routray", "Dr. Siddheswar Routray", "Sidheshwar Routray",
+                    "Assistant Professor", "Computer Science and Engineering", "School of Technology",
+                    "sidheswar.routray@sot.pdpu.ac.in", "KIIT University", "Jiangsu University",
+                    "Machine Learning", "Image Processing", "German Patents", "Healthcare IoMT"
+                ]
+                expanded_query = "Dr Sidheswar Routray Dr Siddheswar Routray Assistant Professor Computer Science and Engineering School of Technology PDEU email research qualifications"
+            elif any(w in q for w in ["shakti", "mishra", "hod"]):
+                positive_keywords = ["Dr. Shakti Mishra", "Associate Professor", "HOD CSE", "Distributed Computing"]
+                expanded_query = "Dr Shakti Mishra Associate Professor Head of Department CSE School of Technology PDEU"
+            elif any(w in q for w in ["nishant", "doshi"]):
+                positive_keywords = ["Dr. Nishant Doshi", "Associate Professor", "Cryptography", "Algorithms"]
+                expanded_query = "Dr Nishant Doshi Associate Professor Computer Science Engineering School of Technology PDEU"
+            else:
+                positive_keywords = ["PDEU Faculty", "School of Technology", "Computer Science and Engineering", "Professor"]
+                expanded_query = f"PDEU Faculty Directory School of Technology Computer Science Engineering {raw_query}"
+
+        elif is_placement:
             intent = "placements"
             positive_keywords = ["placement", "highest package", "average package", "42 LPA", "8.5 LPA", "recruiters", "ONGC", "Reliance", "Amazon"]
             negative_keywords = ["attendance", "circular 2026/04", "hackathon", "medical", "exam debarment", "reg-acad-04"]

@@ -852,14 +852,23 @@ def _seed_memory_indexes():
 
     # Real Faculty Members from scraped roster (linked for faculty queries)
     faculty_data = real_data.get("faculty_document", {}).get("structured_items", [])
-    for fac in faculty_data[:15]:
-        fac_node_id = f"fac:{fac['name'].replace(' ', '_').lower()}"
-        kg.add_entity(fac_node_id, "Faculty", fac["name"], properties={
+    for fac in faculty_data[:35]:
+        raw_name = fac["name"]
+        fac_node_id = f"fac:{raw_name.replace(' ', '_').replace('.', '').lower()}"
+        kg.add_entity(fac_node_id, "Faculty", raw_name, properties={
             "designation": fac.get("designation"),
             "email": fac.get("email"),
-            "school": fac.get("school")
+            "school": fac.get("school"),
+            "department": fac.get("department")
         })
         kg.add_relationship("univ:pdeu", "EMPLOYS", fac_node_id)
+        if "computer" in str(fac.get("department", "")).lower():
+            kg.add_relationship("dept:cse", "EMPLOYS", fac_node_id)
+
+    # Core CSE Faculty Specific Cross-Links
+    kg.add_relationship("fac:dr_sidheswar_routray", "TEACHES", "course:CS401")
+    kg.add_relationship("fac:dr_sidheswar_routray", "TEACHES", "course:CS304")
+    kg.add_relationship("dept:cse", "HEADED_BY", "fac:dr_shakti_mishra")
 
     # Regulations & Notices
     kg.add_entity("reg:acad_04", "Regulation", "REG-ACAD-04 Attendance Requirement")
