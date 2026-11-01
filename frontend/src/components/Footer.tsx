@@ -33,7 +33,7 @@ export const Footer: React.FC = () => {
             <div className="space-y-2 text-xs text-slate-300">
               <div className="flex items-start gap-2">
                 <MapPin className="w-4 h-4 text-[#e87722] shrink-0 mt-0.5" />
-                <span>Knowledge Corridor, Raisan, Gandhinagar - 382007, Gujarat, India</span>
+                <span>Knowledge Corridor, Raisan, Gandhinagar - 382426, Gujarat, India</span>
               </div>
               <div className="flex items-center gap-2">
                 <Phone className="w-4 h-4 text-[#e87722] shrink-0" />
@@ -76,14 +76,14 @@ export const Footer: React.FC = () => {
             </ul>
           </div>
 
-          {/* Col 4: Quick Portals & Anveshan */}
+          {/* Col 4: Quick Portals */}
           <div className="space-y-2.5">
             <h4 className="font-bold text-[#e87722] uppercase tracking-wider text-xs border-b border-[#0c406b] pb-1.5">
-              Portals & AI
+              Portals & Services
             </h4>
             <ul className="space-y-1.5 text-slate-300 text-xs">
-              <li><Link href="/dashboard" className="hover:text-amber-400 transition-colors">ERP / Student Portal</Link></li>
-              <li><Link href="/assistant" className="hover:text-amber-400 transition-colors font-semibold text-amber-300 flex items-center gap-1"><Sparkles className="w-3.5 h-3.5 text-[#e87722]" /> Ask Anveshan AI</Link></li>
+              <li><Link href="/login" className="hover:text-amber-400 transition-colors">ERP / Student Login</Link></li>
+              <li><Link href="/students" className="hover:text-amber-400 transition-colors">Admissions 2026-27</Link></li>
               <li><Link href="/notices" className="hover:text-amber-400 transition-colors">Notices & Circulars</Link></li>
               <li><Link href="/admin" className="hover:text-amber-400 transition-colors">Admin Governance</Link></li>
               <li><Link href="/admin/knowledge" className="hover:text-amber-400 transition-colors">Knowledge Graph</Link></li>

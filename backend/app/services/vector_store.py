@@ -24,7 +24,8 @@ class VectorStore:
         category: str,
         verification_status: str,
         organization_id: str = "PDEU",
-        embedding: Optional[List[float]] = None
+        embedding: Optional[List[float]] = None,
+        source_url: Optional[str] = None
     ):
         if embedding is None:
             embedding = embedding_service.get_embedding(content)
@@ -39,7 +40,8 @@ class VectorStore:
             "applicable_batch": applicable_batch,
             "category": category,
             "verification_status": verification_status,
-            "organization_id": organization_id
+            "organization_id": organization_id,
+            "source_url": source_url
         })
         self.embeddings.append(embedding)
 
@@ -78,6 +80,9 @@ class VectorStore:
 
         results = []
         for score, chunk in scored_results[:top_k]:
+            if score < 0.12:
+                # Reject noise/irrelevant low-similarity chunks
+                continue
             item = dict(chunk)
             item["score"] = score
             results.append(item)

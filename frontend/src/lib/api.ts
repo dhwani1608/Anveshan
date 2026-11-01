@@ -1,4 +1,4 @@
-import { Persona, User, ChatMessage, DocumentItem, GraphData, ConflictItem } from './types';
+import { Persona, User, ChatMessage, DocumentItem, GraphData, ConflictItem, GeminiStatus } from './types';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api/v1';
 
@@ -14,25 +14,25 @@ export async function fetchPersonas(): Promise<Persona[]> {
         id: 'dhwani',
         name: 'Dhwani Vyas',
         role: 'student',
-        email: 'dhwani@pdeu.ac.in',
+        email: '23bcp116@sot.pdpu.ac.in',
         password: 'pdeu2026',
         batch: '2027',
         semester: 7,
-        program: 'B.Tech CSE',
-        roll: '23BCSE101',
-        description: 'Batch 2027 student (Has completed Data Structures & Algorithms, eligible for ML)'
+        program: 'B.Tech Computer Engineering',
+        roll: '23BCP116',
+        description: '2023-2027 Cohort (Semester 7) • Computer Engineering • Has completed Data Structures & Algorithms, eligible for ML'
       },
       {
         id: 'rohan',
         name: 'Rohan Patel',
         role: 'student',
-        email: 'rohan@pdeu.ac.in',
+        email: '21bcp088@sot.pdpu.ac.in',
         password: 'pdeu2026',
         batch: '2025',
         semester: 7,
-        program: 'B.Tech CSE',
-        roll: '21BCSE088',
-        description: 'Batch 2025 student (Legacy 2025 curriculum, missing Algorithms prerequisite)'
+        program: 'B.Tech Computer Engineering',
+        roll: '21BCP088',
+        description: '2021-2025 Cohort (Semester 7) • Legacy 2025 curriculum, missing Algorithms prerequisite'
       },
       {
         id: 'admin',
@@ -68,12 +68,15 @@ export async function askAnveshanQuery(
   question: string,
   token?: string,
   batchOverride?: string,
-  semesterOverride?: number
+  semesterOverride?: number,
+  geminiApiKey?: string
 ): Promise<any> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
+
+  const effectiveKey = geminiApiKey || (typeof window !== 'undefined' ? localStorage.getItem('anveshan_gemini_key') || undefined : undefined);
 
   const res = await fetch(`${API_BASE}/chat/query`, {
     method: 'POST',
@@ -82,13 +85,45 @@ export async function askAnveshanQuery(
       question,
       organization_id: 'PDEU',
       batch_override: batchOverride,
-      semester_override: semesterOverride
+      semester_override: semesterOverride,
+      gemini_api_key: effectiveKey
     })
   });
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: 'Failed to process query' }));
     throw new Error(err.detail || 'Query failed');
+  }
+  return await res.json();
+}
+
+export async function getGeminiStatus(): Promise<GeminiStatus> {
+  try {
+    const res = await fetch(`${API_BASE}/chat/gemini-status`);
+    if (!res.ok) throw new Error();
+    return await res.json();
+  } catch {
+    return {
+      active: false,
+      model: 'gemini-2.0-flash',
+      provider: 'local-grounded',
+      nlp_engine: 'High-Precision Local Semantic NLP'
+    };
+  }
+}
+
+export async function setGeminiApiKey(apiKey: string): Promise<{ success: boolean; message: string }> {
+  const res = await fetch(`${API_BASE}/chat/set-gemini-key`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ api_key: apiKey })
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: 'Failed to configure Gemini API' }));
+    throw new Error(err.detail || 'Failed to configure Gemini API');
+  }
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('anveshan_gemini_key', apiKey.trim());
   }
   return await res.json();
 }

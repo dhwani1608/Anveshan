@@ -5,76 +5,69 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   Sparkles, BookOpen, Layers, Users, Bell, Mail, ShieldCheck,
-  ChevronDown, Search, GraduationCap, Award, ExternalLink, Menu, X
+  ChevronDown, Search, GraduationCap, Award, ExternalLink, Menu, X, LogOut, UserCheck
 } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 import { PersonaSwitcher } from './PersonaSwitcher';
 
 export const Header: React.FC = () => {
   const pathname = usePathname();
+  const { user, isGuest, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
 
   const mainNav = [
     {
-      title: 'About University',
+      title: 'About PDEU',
       href: '/about',
       submenu: [
-        { label: 'About PDEU', href: '/about' },
+        { label: 'About University', href: '/about' },
         { label: 'Vision & Mission', href: '/about' },
-        { label: 'Governance & Leadership', href: '/about' },
-        { label: 'University Policies', href: '/academics' },
-        { label: 'NIRF & IQAC', href: '/about' },
-        { label: 'Accreditation (NAAC A++)', href: '/about' }
+        { label: 'Governance & Board of Governors', href: '/about' },
+        { label: 'Accreditation (NAAC A++)', href: '/about' },
+        { label: 'Campus Infrastructure', href: '/about' }
       ]
     },
     {
-      title: 'Academics',
-      href: '/academics',
-      submenu: [
-        { label: 'Our Schools (SoT, SoET, SLS, SoM, SoL)', href: '/departments' },
-        { label: 'School of Technology (SoT)', href: '/departments' },
-        { label: 'Department of Computer Science', href: '/departments' },
-        { label: 'Undergraduate B.Tech Regulations', href: '/academics' },
-        { label: 'System of Evaluation', href: '/academics' },
-        { label: 'Faculty Directory', href: '/departments' }
-      ]
-    },
-    {
-      title: 'Admissions',
-      href: '/students',
-      badge: '2026-27 Open',
-      submenu: [
-        { label: 'B.Tech Admissions 2026', href: '/students' },
-        { label: 'M.Tech & PG Admissions', href: '/students' },
-        { label: 'MBA Admissions (SoM)', href: '/students' },
-        { label: 'Ph.D Programs', href: '/students' },
-        { label: 'International Admissions', href: '/students' }
-      ]
-    },
-    {
-      title: 'Research',
+      title: 'Our Schools & Courses',
       href: '/departments',
       submenu: [
-        { label: 'Centers of Excellence', href: '/departments' },
-        { label: 'Funded Research Projects', href: '/departments' },
-        { label: 'Innovation & Incubation (IIC)', href: '/departments' },
-        { label: 'Supercomputing & GPU Facilities', href: '/departments' }
+        { label: 'School of Technology (SoT)', href: '/departments' },
+        { label: 'School of Energy Technology (SoET)', href: '/departments' },
+        { label: 'School of Management (SoM)', href: '/departments' },
+        { label: 'School of Liberal Studies (SLS)', href: '/departments' },
+        { label: 'School of Law (SoL)', href: '/departments' },
+        { label: 'All 39 Academic Programs', href: '/departments' }
       ]
     },
     {
-      title: 'Students & Campus',
+      title: 'Admissions 2026',
       href: '/students',
+      badge: 'Open',
       submenu: [
-        { label: 'Personalized Student Dashboard', href: '/dashboard' },
-        { label: 'Student Grievance Redressal', href: '/notices' },
-        { label: 'Hostels & Residential Campus', href: '/students' },
-        { label: 'Sports & Cultural Activities', href: '/students' },
-        { label: 'Anti-Ragging Committee', href: '/notices' }
+        { label: 'B.Tech ACPC Gujarat Seats (50%)', href: '/students' },
+        { label: 'All India JEE (Main) Seats (50%)', href: '/students' },
+        { label: 'NRI & Sponsored Admissions', href: '/students' },
+        { label: 'M.Tech, MBA & Ph.D. Admissions', href: '/students' }
       ]
     },
     {
-      title: 'Notices',
+      title: 'Academics & Rules',
+      href: '/academics',
+      submenu: [
+        { label: 'B.Tech Curriculum & Credit Structure', href: '/academics' },
+        { label: 'Attendance Rule REG-ACAD-04 (80%)', href: '/academics' },
+        { label: 'System of Examination & Evaluation', href: '/academics' },
+        { label: 'Hackathon Concession Circular 2026/04', href: '/notices' }
+      ]
+    },
+    {
+      title: 'Notices & Circulars',
       href: '/notices'
+    },
+    {
+      title: 'Contact Us',
+      href: '/contact'
     }
   ];
 
@@ -92,16 +85,46 @@ export const Header: React.FC = () => {
             </span>
           </div>
 
-          <div className="flex items-center gap-4 text-slate-300">
+          <div className="flex items-center gap-3 text-slate-300">
+            <Link href="/wireframe" className="hover:text-amber-400 flex items-center gap-1 font-semibold text-amber-300 transition-colors">
+              <Sparkles className="w-3.5 h-3.5 text-[#e87722]" />
+              <span>UX Wireframe & Flow</span>
+            </Link>
+            <span className="text-slate-600">|</span>
             <Link href="/admin" className="hover:text-amber-400 flex items-center gap-1 transition-colors">
               <ShieldCheck className="w-3.5 h-3.5" />
               <span>Admin Governance</span>
             </Link>
             <span className="text-slate-600">|</span>
-            <Link href="/dashboard" className="hover:text-amber-400 flex items-center gap-1 transition-colors">
-              <GraduationCap className="w-3.5 h-3.5" />
-              <span>ERP / Student Login</span>
-            </Link>
+            
+            {!isGuest && user ? (
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/dashboard"
+                  className="hover:text-amber-300 flex items-center gap-1.5 font-bold text-white transition-colors"
+                >
+                  <GraduationCap className="w-3.5 h-3.5 text-[#e87722]" />
+                  <span>
+                    {user.profile?.roll_number || user.full_name}
+                    {user.profile?.batch && user.profile.batch !== 'N/A' ? ` (Batch ${user.profile.batch})` : ''}
+                  </span>
+                </Link>
+                <button
+                  onClick={logout}
+                  className="hover:text-rose-400 flex items-center gap-1 text-[10px] text-slate-400 hover:bg-slate-800 px-1.5 py-0.5 rounded transition-colors"
+                  title="Sign Out"
+                >
+                  <LogOut className="w-3 h-3" />
+                  <span>Logout</span>
+                </button>
+              </div>
+            ) : (
+              <Link href="/login" className="hover:text-amber-400 flex items-center gap-1 transition-colors text-amber-300 font-semibold">
+                <GraduationCap className="w-3.5 h-3.5" />
+                <span>Student Login (@pdpu.ac.in)</span>
+              </Link>
+            )}
+
             <span className="text-slate-600">|</span>
             <PersonaSwitcher />
           </div>
@@ -128,15 +151,12 @@ export const Header: React.FC = () => {
             </div>
           </Link>
 
-          {/* Anveshan Highlight Button in Header */}
-          <div className="hidden sm:flex items-center gap-2">
-            <Link
-              href="/assistant"
-              className="flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-[#002b49] to-[#0c406b] hover:from-[#e87722] hover:to-[#f37021] text-white font-bold text-xs shadow-md shadow-[#002b49]/20 transition-all border border-[#e87722]/40"
-            >
-              <Sparkles className="w-4 h-4 text-amber-300 animate-spin-slow" />
-              <span>ANVESHAN AI COGNITIVE LAYER</span>
-            </Link>
+          {/* Right Header Info Badge */}
+          <div className="hidden sm:flex items-center gap-3">
+            <div className="text-right">
+              <div className="text-xs font-bold text-[#002b49]">Gandhinagar Campus</div>
+              <div className="text-[10px] text-slate-500 font-mono">Knowledge Corridor, Raisan</div>
+            </div>
           </div>
 
           {/* Mobile hamburger */}
@@ -195,15 +215,10 @@ export const Header: React.FC = () => {
             ))}
           </div>
 
-          {/* Direct CTA Tab for Anveshan */}
-          <div className="flex items-center gap-3">
-            <Link
-              href="/assistant"
-              className="flex items-center gap-1.5 bg-[#e87722] hover:bg-[#d96711] text-white px-3.5 py-1.5 rounded-full font-bold text-xs transition-colors shadow-sm"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Ask Anveshan</span>
-            </Link>
+          {/* Right Nav Item: Admissions Helpline */}
+          <div className="text-slate-300 text-[11px] font-medium flex items-center gap-2">
+            <span>Admissions Helpline:</span>
+            <span className="font-mono text-[#e87722] font-bold">+91 79 2327 5060</span>
           </div>
         </div>
       </nav>
@@ -223,13 +238,6 @@ export const Header: React.FC = () => {
             </div>
           ))}
           <div className="pt-2 border-t border-slate-800 flex flex-col gap-2">
-            <Link
-              href="/assistant"
-              onClick={() => setMobileMenuOpen(false)}
-              className="w-full py-2 text-center rounded-xl bg-[#e87722] text-white font-bold text-xs"
-            >
-              Open Anveshan AI Assistant
-            </Link>
             <Link
               href="/dashboard"
               onClick={() => setMobileMenuOpen(false)}

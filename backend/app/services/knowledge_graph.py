@@ -1,4 +1,5 @@
 import json
+import re
 from typing import List, Dict, Any, Optional, Set
 import networkx as nx
 
@@ -127,26 +128,56 @@ class KnowledgeGraphService:
         batch: Optional[str] = None
     ) -> List[Dict[str, str]]:
         """
-        Traverses nodes matching keywords in the query and returns structured
-        source -> relation -> target paths.
+        Traverses nodes matching keywords in the query and returns structured,
+        high-relevance source -> relation -> target paths.
         """
         query_lower = query.lower()
+        stopwords = {
+            "in", "of", "and", "to", "the", "a", "an", "is", "for", "on", "at",
+            "what", "which", "how", "course", "courses", "year", "pdeu", "university",
+            "academic", "batch", "student", "tell", "me", "give", "list", "are"
+        }
+        
+        is_curriculum_query = any(k in query_lower for k in [
+            "first year", "1st year", "second year", "2nd year", "third year", "3rd year",
+            "fourth year", "4th year", "semester", "sem", "curriculum", "syllabus", "credit", "subjects"
+        ])
+        is_governance_query = any(k in query_lower for k in [
+            "president", "mukesh ambani", "hasmukh adhia", "sundar manoharan", "governance", "act", "chancellor"
+        ])
+        is_faculty_query = any(k in query_lower for k in ["faculty", "professor", "teacher", "who teaches", "hod", "staff"])
+
         matched_nodes: Set[str] = set()
+
+        # Specific curriculum query shortcuts for high-fidelity paths
+        if any(k in query_lower for k in ["first year", "1st year", "freshman", "sem 1", "sem 2", "semester 1", "semester 2"]):
+            for n in ["sem:1", "sem:2", "prog:btech_cse", "course:CS101", "course:CS102"]:
+                if n in self.graph.nodes:
+                    matched_nodes.add(n)
 
         for node_id, data in self.graph.nodes(data=True):
             if data.get("organization_id") != organization_id:
                 continue
             name = str(data.get("name", "")).lower()
             entity_type = str(data.get("entity_type", "")).lower()
-            node_str = str(node_id).lower()
 
-            # Word match or substring match
-            if any(term in query_lower for term in name.split()) or any(term in name for term in query_lower.split() if len(term) > 3):
+            # Prevent university root node from dumping unrelated edges unless governance is asked
+            if node_id == "univ:pdeu" and not is_governance_query:
+                continue
+
+            # Skip faculty nodes unless user specifically asked about faculty
+            if entity_type == "faculty" and not is_faculty_query:
+                continue
+
+            # Meaningful token matching
+            name_tokens = [w for w in re.findall(r"\w+", name) if w not in stopwords and len(w) > 2]
+            if any(term in query_lower for term in name_tokens):
                 matched_nodes.add(node_id)
             elif "prerequisite" in query_lower and entity_type == "course":
                 matched_nodes.add(node_id)
-            elif "curriculum" in query_lower and (entity_type in ["course", "batch", "program"]):
-                matched_nodes.add(node_id)
+            elif is_curriculum_query and entity_type in ["course", "semester", "program"]:
+                if any(code in query_lower for code in [str(node_id).lower(), name.lower()]):
+                    matched_nodes.add(node_id)
             elif "attendance" in query_lower and entity_type in ["regulation", "notice"]:
                 matched_nodes.add(node_id)
 
@@ -156,27 +187,34 @@ class KnowledgeGraphService:
         for node in matched_nodes:
             # Check outgoing edges
             for u, v, data in self.graph.out_edges(node, data=True):
-                edge_key = f"{u}->{data.get('relation_type')}->{v}"
+                rel = data.get("relation_type", "RELATED_TO")
+                # Filter out faculty employment noise for non-faculty queries
+                if rel == "EMPLOYS" and not is_faculty_query:
+                    continue
+                edge_key = f"{u}->{rel}->{v}"
                 if edge_key not in visited_edges:
                     visited_edges.add(edge_key)
                     u_name = self.graph.nodes[u].get("name", u)
                     v_name = self.graph.nodes[v].get("name", v)
                     traversals.append({
                         "source": u_name,
-                        "relation": data.get("relation_type", "RELATED_TO"),
+                        "relation": rel,
                         "target": v_name
                     })
 
             # Check incoming edges
             for u, v, data in self.graph.in_edges(node, data=True):
-                edge_key = f"{u}->{data.get('relation_type')}->{v}"
+                rel = data.get("relation_type", "RELATED_TO")
+                if rel == "EMPLOYS" and not is_faculty_query:
+                    continue
+                edge_key = f"{u}->{rel}->{v}"
                 if edge_key not in visited_edges:
                     visited_edges.add(edge_key)
                     u_name = self.graph.nodes[u].get("name", u)
                     v_name = self.graph.nodes[v].get("name", v)
                     traversals.append({
                         "source": u_name,
-                        "relation": data.get("relation_type", "RELATED_TO"),
+                        "relation": rel,
                         "target": v_name
                     })
 

@@ -41,6 +41,7 @@ export interface CitationItem {
   section?: string;
   verification_status: 'AUTHORITATIVE' | 'VERIFIED' | 'UNVERIFIED' | 'OUTDATED';
   snippet: string;
+  source_url?: string;
 }
 
 export interface GraphStep {
@@ -84,6 +85,15 @@ export interface ChatMessage {
   conflicts?: ConflictItem[];
   related_actions?: string[];
   latency_ms?: number;
+  model_used?: string;
+  nlp_intent?: string;
+}
+
+export interface GeminiStatus {
+  active: boolean;
+  model: string;
+  provider: string;
+  nlp_engine: string;
 }
 
 export interface DocumentItem {

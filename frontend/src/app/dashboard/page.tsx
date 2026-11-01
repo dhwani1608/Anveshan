@@ -12,17 +12,6 @@ import {
 export default function StudentDashboardPage() {
   const router = useRouter();
   const { user, activePersona } = useAuth();
-  const [askQuery, setAskQuery] = useState('');
-
-  const handleAsk = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (askQuery.trim()) {
-      router.push(`/assistant?q=${encodeURIComponent(askQuery)}`);
-    } else {
-      router.push('/assistant');
-    }
-  };
-
   const studentName = user?.full_name || activePersona?.name || 'Dhwani Vyas';
   const program = user?.profile?.program || activePersona?.program || 'B.Tech';
   const department = user?.profile?.department || 'Computer Science & Engineering';
@@ -36,13 +25,6 @@ export default function StudentDashboardPage() {
       ? ['CS201 Data Structures', 'CS202 Discrete Mathematics', 'CS301 DBMS', 'CS302 Algorithms', 'CS303 Operating Systems', 'CS304 Networks']
       : ['CS201 Data Structures', 'CS202 Discrete Mathematics', 'CS301 DBMS', 'CS303 Operating Systems']
   );
-
-  const suggestedQuestions = [
-    { title: 'What courses can I take?', query: 'Which courses can I take next semester?' },
-    { title: 'What are my attendance requirements?', query: 'What are the attendance requirements?' },
-    { title: 'Can I take Machine Learning?', query: 'Can I take Machine Learning next semester?' },
-    { title: 'Which regulations apply to my batch?', query: 'Which regulations apply to my batch?' }
-  ];
 
   return (
     <div className="py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-8">
@@ -81,56 +63,41 @@ export default function StudentDashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left 2 Cols: Ask Anveshan & Suggested */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Ask Anveshan Box */}
+          {/* Academic Advising & Enrollment Status */}
           <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-4 shadow-md">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-amber-400" />
-                <h2 className="text-base font-bold text-white">ASK ANVESHAN</h2>
+                <GraduationCap className="w-5 h-5 text-amber-400" />
+                <h2 className="text-base font-bold text-white">SEMESTER {semester} ENROLLMENT AUDIT</h2>
               </div>
-              <span className="text-[11px] text-slate-400">Personalized Knowledge Assistant</span>
+              <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                Active & Verified
+              </span>
             </div>
 
-            <p className="text-xs text-slate-300">
-              "What would you like to know about your courses, prerequisites, or regulations?"
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Academic records for cohort <strong>Batch {batch}</strong> ({batch === '2027' ? 'Curriculum v2.1' : 'Curriculum v1.4'}). All prerequisite chains for advanced electives have been synchronized with the PDEU Examination Cell.
             </p>
 
-            <form onSubmit={handleAsk} className="flex gap-2">
-              <input
-                type="text"
-                value={askQuery}
-                onChange={(e) => setAskQuery(e.target.value)}
-                placeholder="Ask Anveshan a question..."
-                className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
-              />
-              <button
-                type="submit"
-                className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 transition-colors shadow-md"
-              >
-                <span>Ask</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            </form>
-
-            {/* Suggested Prompts */}
-            <div className="space-y-2 pt-2">
-              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
-                Suggested Academic Inquiries:
-              </span>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {suggestedQuestions.map((sq, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => router.push(`/assistant?q=${encodeURIComponent(sq.query)}`)}
-                    className="text-left p-3 rounded-xl bg-slate-950 hover:bg-slate-850 border border-slate-800/80 hover:border-amber-500/40 transition-all text-xs flex items-center justify-between group"
-                  >
-                    <span className="text-slate-300 group-hover:text-amber-300 font-medium">
-                      • {sq.title}
-                    </span>
-                    <ArrowRight className="w-3.5 h-3.5 text-slate-600 group-hover:text-amber-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </button>
-                ))}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
+                <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Elective Group III</span>
+                <strong className="text-xs text-amber-300 block">CS421 Deep Learning / CS422 NLP</strong>
+                <span className="text-[10px] text-emerald-400 block font-medium">✓ Prerequisite CS401 Met</span>
               </div>
+              <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
+                <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Major Project Phase-I</span>
+                <strong className="text-xs text-amber-300 block">CS491 Research Dissertation</strong>
+                <span className="text-[10px] text-emerald-400 block font-medium">✓ 120+ Credits Accrued</span>
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
+              <span className="flex items-center gap-1.5 text-[11px]">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                Questions about courses or regulations? Use the assistant at the bottom right.
+              </span>
+              <span className="text-[10px] text-amber-400 font-mono">24x7 Academic AI</span>
             </div>
           </div>
 

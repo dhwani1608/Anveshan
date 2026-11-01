@@ -46,7 +46,7 @@ class BM25SearchService:
             if batch_filter and chunk.get("applicable_batch") not in ["ALL", batch_filter, None]:
                 continue
 
-            if score > 0:
+            if score > 1.0:
                 scored_pairs.append((float(score), chunk))
 
         scored_pairs.sort(key=lambda x: x[0], reverse=True)

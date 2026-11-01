@@ -1,75 +1,126 @@
+'use client';
+
 import React from 'react';
 import Link from 'next/link';
-import { Layers, CheckCircle2, AlertCircle, FileText, ArrowRight } from 'lucide-react';
+import { Layers, CheckCircle2, AlertCircle, FileText, ArrowRight, BookOpen, GraduationCap, Award, HelpCircle } from 'lucide-react';
 
 export default function AcademicsPage() {
+  const academicRules = [
+    {
+      code: 'REG-ACAD-04',
+      title: 'Attendance Regulations (Section 4.2)',
+      threshold: '80% Mandatory',
+      desc: 'Aggregate 80% attendance is strictly enforced across theory lectures, tutorials, and laboratories. Students between 70% and 79% may be condoned solely on genuine medical grounds certified by the University Medical Officer.',
+      below70: 'Below 70% results in immediate W grade (Withheld/Debarred from End-Semester Exams).'
+    },
+    {
+      code: 'REG-EVAL-02',
+      title: 'Grading & Examination Standards',
+      threshold: '10-Point Scale',
+      desc: 'Continuous internal assessment (Mid-Sem Exam, quizzes, labs, assignments) accounts for 50%, while End-Semester University Examinations account for 50%.',
+      below70: 'Letter grades: O (10), A+ (9), A (8), B+ (7), B (6), C (5), P (4), F (0).'
+    },
+    {
+      code: 'REG-DEG-01',
+      title: 'B.Tech Degree Eligibility (Section 6.1)',
+      threshold: '168 Total Credits',
+      desc: 'Candidate must accumulate a minimum of 168 academic credits and maintain a Cumulative Performance Index (CPI) of at least 5.0 / 10.0 with 0 standing backlogs.',
+      below70: 'Mandatory completion of Major Project Phase-I (CS491) & Industry Internship.'
+    }
+  ];
+
   return (
-    <div className="py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-12">
-      <div className="text-center max-w-3xl mx-auto space-y-3">
-        <span className="text-xs font-semibold uppercase tracking-wider text-amber-400">
-          Academic Structure & Policies
-        </span>
-        <h1 className="text-3xl sm:text-5xl font-serif font-bold text-white">
-          Undergraduate Degree Framework
-        </h1>
-        <p className="text-sm text-slate-300 leading-relaxed">
-          Comprehensive curriculum structure for the 4-Year Bachelor of Technology (B.Tech) degree governed by official university regulations.
-        </p>
-      </div>
+    <div className="bg-slate-50 text-slate-800 min-h-screen py-10 px-4 sm:px-6 lg:px-8 space-y-10">
+      <div className="max-w-6xl mx-auto space-y-8">
+        
+        {/* Breadcrumb Navigation */}
+        <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
+          <Link href="/" className="hover:text-[#e87722] transition-colors">Home</Link>
+          <span>/</span>
+          <span className="text-[#002b49] font-semibold">Academics & Regulations</span>
+        </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Core Regulations */}
-        <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
-          <div className="flex items-center gap-2 text-amber-400 font-semibold text-sm">
-            <FileText className="w-4 h-4" />
-            <span>Academic Code: REG-ACAD-04</span>
+        {/* Page Hero */}
+        <div className="bg-white rounded-3xl p-8 sm:p-12 border border-slate-200 shadow-sm space-y-4 border-l-8 border-l-[#002b49]">
+          <div className="flex items-center gap-2">
+            <span className="bg-[#e87722] text-white text-[11px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+              Academic Framework
+            </span>
+            <span className="text-xs text-slate-500 font-medium">
+              Curriculum, Degree Requirements & Regulations
+            </span>
           </div>
-          <h3 className="text-xl font-bold text-white font-serif">Minimum Attendance Mandate</h3>
-          <p className="text-xs text-slate-300 leading-relaxed">
-            Every candidate must secure a strict minimum attendance of <strong>80%</strong> in aggregate across all lectures, tutorials, and practical sessions. Students with attendance between 70% and 79% may be condoned solely on genuine medical grounds certified by the University Medical Officer.
+          <h1 className="text-3xl sm:text-5xl font-serif font-black text-[#002b49] leading-tight">
+            Academic Regulations & Degree Guidelines
+          </h1>
+          <p className="text-sm sm:text-base text-slate-600 max-w-3xl leading-relaxed">
+            Pandit Deendayal Energy University enforces rigorous academic standards, continuous evaluation, and a transparent credit-based semester system across all constituent undergraduate, postgraduate, and doctoral programs.
           </p>
-          <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800/80 text-xs text-slate-400">
-            <strong>Below 70% Threshold:</strong> Results in immediate 'W' (Withheld/Debarred) grade, requiring re-registration in the subsequent cycle.
+        </div>
+
+        {/* Academic Rules Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {academicRules.map((rule, idx) => (
+            <div key={idx} className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-4 flex flex-col justify-between">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-mono font-bold bg-[#002b49]/10 text-[#002b49] px-2.5 py-1 rounded">
+                    {rule.code}
+                  </span>
+                  <span className="text-xs font-bold text-[#e87722]">
+                    {rule.threshold}
+                  </span>
+                </div>
+                <h3 className="text-lg font-bold text-[#002b49] font-serif">
+                  {rule.title}
+                </h3>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  {rule.desc}
+                </p>
+              </div>
+
+              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-[11px] text-slate-500 font-medium">
+                {rule.below70}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Conflict & Concession Alert Banner */}
+        <div className="p-6 rounded-2xl bg-amber-50 border-2 border-amber-300 space-y-3">
+          <div className="flex items-center gap-2 text-amber-800 font-bold text-sm">
+            <AlertCircle className="w-5 h-5 text-amber-600" />
+            <span>Active Policy Interaction: Attendance Relaxation for Hackathons</span>
+          </div>
+          <p className="text-xs text-slate-700 leading-relaxed">
+            While parent regulation <strong>REG-ACAD-04</strong> establishes an 80% attendance mandate, university <strong>Circular 2026/04</strong> permits a 75% relaxation for students representing PDEU in national hackathons or sports competitions with prior written endorsement from the HOD. Anveshan highlights both provisions to prevent debarment surprises.
+          </p>
+          <div className="pt-1">
+            <Link
+              href="/notices"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-[#002b49] hover:text-[#e87722] underline underline-offset-2"
+            >
+              <span>View Official Circular 2026/04 Gazette</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
           </div>
         </div>
 
-        {/* Degree Requirements */}
-        <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
-          <div className="flex items-center gap-2 text-emerald-400 font-semibold text-sm">
-            <CheckCircle2 className="w-4 h-4" />
-            <span>Graduation Benchmark</span>
+        {/* Academic Exploration Banner */}
+        <div className="p-8 rounded-3xl bg-gradient-to-r from-[#002b49] to-[#0c406b] text-white flex flex-col sm:flex-row items-center justify-between gap-6 shadow-md border-l-8 border-l-[#e87722]">
+          <div className="space-y-1">
+            <h3 className="text-xl font-bold font-serif">Explore Department Curricula & Syllabi</h3>
+            <p className="text-xs text-slate-200">Inspect full degree credit breakdowns, course outlines, and elective offerings across all PDEU schools.</p>
           </div>
-          <h3 className="text-xl font-bold text-white font-serif">Credit & CPI Requirements</h3>
-          <ul className="space-y-2 text-xs text-slate-300">
-            <li className="flex items-start gap-2">
-              <span className="text-amber-400 font-bold">•</span>
-              <span><strong>168 Minimum Credits:</strong> Required across 8 academic semesters.</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-amber-400 font-bold">•</span>
-              <span><strong>Minimum CPI:</strong> Cumulative Performance Index of 5.0 / 10.0 with 0 backlogs.</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-amber-400 font-bold">•</span>
-              <span><strong>Capstone Requirement:</strong> Successful defense of CS491 Major Project Phase-I and Phase-II.</span>
-            </li>
-          </ul>
+          <Link
+            href="/departments"
+            className="px-6 py-3 rounded-full bg-[#e87722] hover:bg-[#d96711] text-white font-bold text-xs flex items-center gap-2 transition-all shrink-0 shadow-md"
+          >
+            <span>Explore Department Programs</span>
+            <ArrowRight className="w-4 h-4" />
+          </Link>
         </div>
-      </div>
 
-      {/* Ask Anveshan banner */}
-      <div className="p-6 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="space-y-1">
-          <h4 className="text-sm font-semibold text-amber-300">Need clarification on your specific batch curriculum?</h4>
-          <p className="text-xs text-slate-400">Anveshan automatically extracts the right curriculum based on your admission year.</p>
-        </div>
-        <Link
-          href="/assistant?q=Which%20regulations%20apply%20to%20my%20batch%3F"
-          className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 transition-all shrink-0"
-        >
-          <span>Ask Anveshan</span>
-          <ArrowRight className="w-3.5 h-3.5" />
-        </Link>
       </div>
     </div>
   );

@@ -38,6 +38,7 @@ class ChatQueryRequest(BaseModel):
     organization_id: Optional[str] = "PDEU"
     batch_override: Optional[str] = None
     semester_override: Optional[int] = None
+    gemini_api_key: Optional[str] = None
 
 class CitationItem(BaseModel):
     citation_id: int
@@ -47,6 +48,7 @@ class CitationItem(BaseModel):
     page_number: Optional[int] = None
     section: Optional[str] = None
     verification_status: str  # AUTHORITATIVE, VERIFIED, UNVERIFIED, OUTDATED
+    source_url: Optional[str] = None
     snippet: str
 
 class GraphStep(BaseModel):
@@ -76,6 +78,8 @@ class ChatQueryResponse(BaseModel):
     related_actions: List[str]
     retrieval_method: str = "hybrid_vector_bm25_graph"
     latency_ms: float
+    model_used: Optional[str] = "Gemini 2.0 Flash Grounded"
+    nlp_intent: Optional[str] = "general"
 
 # Document & Ingestion Schemas
 class DocumentCreate(BaseModel):

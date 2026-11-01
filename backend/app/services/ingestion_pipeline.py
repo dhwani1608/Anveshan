@@ -9,6 +9,14 @@ class IngestionPipeline:
     def __init__(self):
         self.all_indexed_chunks: List[Dict[str, Any]] = []
 
+    def clear(self):
+        self.all_indexed_chunks = []
+        vector_store.clear()
+        knowledge_graph_service.clear()
+        bm25_service.chunks = []
+        bm25_service.corpus_tokens = []
+        bm25_service.bm25 = None
+
     def chunk_document(
         self,
         document_id: str,
@@ -17,7 +25,8 @@ class IngestionPipeline:
         applicable_batch: str = "ALL",
         category: str = "ACADEMIC",
         verification_status: str = "AUTHORITATIVE",
-        organization_id: str = "PDEU"
+        organization_id: str = "PDEU",
+        source_url: Optional[str] = None
     ) -> List[Dict[str, Any]]:
         # Split text into meaningful sections by double newline or headers
         raw_sections = [s.strip() for s in re.split(r"\n\s*\n|(?=###?\s+)", content) if len(s.strip()) > 30]
@@ -43,7 +52,8 @@ class IngestionPipeline:
                 "applicable_batch": applicable_batch,
                 "category": category,
                 "verification_status": verification_status,
-                "organization_id": organization_id
+                "organization_id": organization_id,
+                "source_url": source_url
             }
             chunks.append(chunk_item)
             
@@ -58,7 +68,8 @@ class IngestionPipeline:
                 applicable_batch=applicable_batch,
                 category=category,
                 verification_status=verification_status,
-                organization_id=organization_id
+                organization_id=organization_id,
+                source_url=source_url
             )
 
         self.all_indexed_chunks.extend(chunks)

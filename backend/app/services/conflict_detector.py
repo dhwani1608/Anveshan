@@ -52,9 +52,13 @@ class ConflictDetectorService:
                 continue
 
             topic = conf.get("topic", "")
-            # If the user asks about attendance / exemption or the chunks contain both sources
-            triggers = ["attendance", "minimum", "exemption", "concession", "sports", "hackathon", "80%", "75%"]
-            if any(t in query_lower for t in triggers) or (topic in query_lower):
+            # Only trigger attendance conflict when query specifically concerns attendance regulations
+            triggers = [
+                "attendance", "minimum attendance", "attendance requirement",
+                "attendance concession", "attendance exemption", "attendance percentage",
+                "75% attendance", "80% attendance"
+            ]
+            if any(t in query_lower for t in triggers) or (topic and topic in query_lower and "attendance" in topic):
                 active_conflicts.append({
                     "id": conf["id"],
                     "title": conf["title"],
