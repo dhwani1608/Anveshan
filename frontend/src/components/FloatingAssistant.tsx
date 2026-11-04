@@ -60,7 +60,7 @@ export const FloatingAssistant: React.FC = () => {
 
       {/* Floating Messenger Window (Floating, NOT covering full height, WhatsApp Messenger feel) */}
       {isAiOpen && (
-        <div className="fixed bottom-20 right-3 sm:right-6 w-[94vw] sm:w-[420px] md:w-[440px] h-[580px] sm:h-[620px] max-h-[82vh] z-50 flex flex-col rounded-3xl shadow-2xl border border-slate-200/90 overflow-hidden bg-white animate-in zoom-in-95 duration-200">
+        <div className="fixed bottom-20 right-3 sm:right-6 w-[94vw] sm:w-[420px] md:w-[440px] h-[580px] sm:h-[620px] max-h-[84vh] z-50 flex flex-col rounded-3xl shadow-2xl border border-slate-200/90 overflow-hidden bg-white animate-in zoom-in-95 duration-200 min-h-0">
           {/* WhatsApp-Style Top Header Bar */}
           <div className="px-4 py-3 bg-gradient-to-r from-red-700 via-red-600 to-rose-600 text-white flex items-center justify-between shadow-sm shrink-0">
             {/* Identity & Status */}
@@ -110,7 +110,7 @@ export const FloatingAssistant: React.FC = () => {
           </div>
 
           {/* Interactive Chat Canvas Container */}
-          <div className="flex-1 overflow-hidden flex flex-col relative bg-[#f8f9fa]">
+          <div className="flex-1 overflow-hidden flex flex-col relative bg-[#f8f9fa] min-h-0">
             <AssistantChat />
           </div>
         </div>

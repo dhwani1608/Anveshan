@@ -314,17 +314,18 @@ export const AssistantChat: React.FC<AssistantChatProps> = () => {
   const activeStarterPrompts = isGuest ? guestStarterPrompts : studentStarterPrompts;
 
   return (
-    <div className="relative flex flex-col h-full w-full justify-between bg-[#f0f2f5] text-slate-900 font-sans">
+    <div className="relative flex flex-col h-full w-full justify-between bg-[#f0f2f5] text-slate-900 font-sans min-h-0 overflow-hidden">
       {/* =========================================================================
           INTAKE VIEW: 2 Distinct Options (PDEU Student Login vs Guest Aspirant)
           Header: Welcome to PDEU | Footer: Powered by Anveshan
+          Scrollable, responsive, no bottom cutoff
           ========================================================================= */}
       {showIntake ? (
-        <div className="flex-1 overflow-y-auto p-3 sm:p-5 flex flex-col items-center justify-center bg-radial from-red-50/50 via-white to-slate-100">
-          <div className="w-full max-w-sm sm:max-w-md bg-white border border-slate-200 rounded-3xl shadow-xl overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-4 flex flex-col items-center min-h-0 bg-radial from-red-50/50 via-white to-slate-100 scroll-smooth">
+          <div className="w-full max-w-sm sm:max-w-md bg-white border border-slate-200 rounded-3xl shadow-xl overflow-hidden my-auto shrink-0 animate-in zoom-in-95 duration-200 mb-4">
             {/* Header: Exact text "Welcome to PDEU" */}
-            <div className="p-4 sm:p-5 pb-3 text-center border-b border-slate-100 bg-gradient-to-b from-red-50/60 to-white">
-              <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-red-600 to-rose-700 text-white font-serif font-black text-xl flex items-center justify-center mx-auto shadow-sm mb-2">
+            <div className="p-3.5 sm:p-4 pb-2.5 text-center border-b border-slate-100 bg-gradient-to-b from-red-50/60 to-white">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-red-600 to-rose-700 text-white font-serif font-black text-xl flex items-center justify-center mx-auto shadow-sm mb-1.5">
                 P
               </div>
               <h2 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
@@ -335,11 +336,11 @@ export const AssistantChat: React.FC<AssistantChatProps> = () => {
               </p>
 
               {/* 2 Choice Tabs */}
-              <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-100/90 rounded-2xl mt-3.5 border border-slate-200">
+              <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-100/90 rounded-2xl mt-3 border border-slate-200">
                 <button
                   type="button"
                   onClick={() => { setActiveTab('student'); setStudentError(null); }}
-                  className={`py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                  className={`py-1.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
                     activeTab === 'student'
                       ? 'bg-red-600 text-white shadow-xs'
                       : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
@@ -351,7 +352,7 @@ export const AssistantChat: React.FC<AssistantChatProps> = () => {
                 <button
                   type="button"
                   onClick={() => { setActiveTab('guest'); setGuestError(null); }}
-                  className={`py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                  className={`py-1.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
                     activeTab === 'guest'
                       ? 'bg-red-600 text-white shadow-xs'
                       : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
@@ -365,7 +366,7 @@ export const AssistantChat: React.FC<AssistantChatProps> = () => {
 
             {/* TAB 1: PDEU STUDENT LOGIN (Clean, without fill 23bcp116 button) */}
             {activeTab === 'student' && (
-              <form onSubmit={handleStudentSubmit} className="p-4 sm:p-5 space-y-3.5">
+              <form onSubmit={handleStudentSubmit} className="p-3.5 sm:p-4 space-y-3">
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
                     <span>PDEU Student Email or Roll ID</span>
@@ -377,7 +378,7 @@ export const AssistantChat: React.FC<AssistantChatProps> = () => {
                       value={studentInput}
                       onChange={(e) => setStudentInput(e.target.value)}
                       placeholder="e.g. 23bcp116@sot.pdpu.ac.in or 23bcp116"
-                      className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:bg-white text-slate-900 font-medium transition-all"
+                      className="w-full px-3 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:bg-white text-slate-900 font-medium transition-all"
                       autoFocus
                     />
                   </div>
@@ -387,7 +388,7 @@ export const AssistantChat: React.FC<AssistantChatProps> = () => {
                 </div>
 
                 {studentError && (
-                  <div className="p-2.5 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 flex items-center gap-2 animate-in fade-in">
+                  <div className="p-2 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 flex items-center gap-2 animate-in fade-in">
                     <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
                     <span>{studentError}</span>
                   </div>
@@ -395,8 +396,8 @@ export const AssistantChat: React.FC<AssistantChatProps> = () => {
 
                 {/* Instant Decoded Identity Preview Card */}
                 {parsedPreview && parsedPreview.isValid && (
-                  <div className="p-3 rounded-2xl bg-gradient-to-br from-red-50/80 via-white to-red-50/40 border border-red-200/90 text-xs space-y-2 animate-in fade-in duration-150">
-                    <div className="flex items-center justify-between pb-1.5 border-b border-red-100">
+                  <div className="p-2.5 rounded-2xl bg-gradient-to-br from-red-50/80 via-white to-red-50/40 border border-red-200/90 text-xs space-y-2 animate-in fade-in duration-150">
+                    <div className="flex items-center justify-between pb-1 border-b border-red-100">
                       <div className="flex items-center gap-1.5 text-red-700 font-extrabold text-[11px] uppercase tracking-wide">
                         <ShieldCheck className="w-4 h-4 text-red-600" />
                         <span>Verified PDEU Student</span>
@@ -406,7 +407,7 @@ export const AssistantChat: React.FC<AssistantChatProps> = () => {
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2 text-[11px]">
+                    <div className="grid grid-cols-2 gap-1.5 text-[11px]">
                       <div>
                         <span className="text-slate-400 block text-[9px] uppercase font-bold">Program / Branch</span>
                         <span className="font-bold text-slate-800 truncate block">{parsedPreview.program}</span>
@@ -440,13 +441,13 @@ export const AssistantChat: React.FC<AssistantChatProps> = () => {
 
             {/* TAB 2: GUEST / ASPIRANT INTAKE FORM */}
             {activeTab === 'guest' && (
-              <form onSubmit={handleGuestSubmit} className="p-4 sm:p-5 space-y-2.5">
+              <form onSubmit={handleGuestSubmit} className="p-3.5 sm:p-4 space-y-2">
                 <input
                   type="text"
                   value={guestFullName}
                   onChange={(e) => setGuestFullName(e.target.value)}
                   placeholder="Your full name"
-                  className="w-full px-3.5 py-2 text-xs sm:text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 text-slate-900 placeholder-slate-400 font-medium"
+                  className="w-full px-3 py-2 text-xs sm:text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 text-slate-900 placeholder-slate-400 font-medium"
                   required
                 />
 
@@ -455,7 +456,7 @@ export const AssistantChat: React.FC<AssistantChatProps> = () => {
                   value={guestEmail}
                   onChange={(e) => setGuestEmail(e.target.value)}
                   placeholder="Email address"
-                  className="w-full px-3.5 py-2 text-xs sm:text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 text-slate-900 placeholder-slate-400 font-medium"
+                  className="w-full px-3 py-2 text-xs sm:text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 text-slate-900 placeholder-slate-400 font-medium"
                   required
                 />
 
@@ -470,7 +471,7 @@ export const AssistantChat: React.FC<AssistantChatProps> = () => {
                     onChange={(e) => setGuestPhone(e.target.value)}
                     placeholder="Mobile number"
                     maxLength={10}
-                    className="flex-1 px-3.5 py-2 text-xs sm:text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 text-slate-900 placeholder-slate-400 font-medium"
+                    className="flex-1 px-3 py-2 text-xs sm:text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 text-slate-900 placeholder-slate-400 font-medium"
                     required
                   />
                 </div>
@@ -479,7 +480,7 @@ export const AssistantChat: React.FC<AssistantChatProps> = () => {
                   <select
                     value={guestDiscipline}
                     onChange={(e) => handleDisciplineChange(e.target.value)}
-                    className="w-full appearance-none px-3.5 py-2 text-xs sm:text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 text-slate-900 font-medium pr-8"
+                    className="w-full appearance-none px-3 py-2 text-xs sm:text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 text-slate-900 font-medium pr-8"
                   >
                     {Object.keys(PDEU_OFFERED_PROGRAMS).map((school) => (
                       <option key={school} value={school}>
@@ -494,7 +495,7 @@ export const AssistantChat: React.FC<AssistantChatProps> = () => {
                   <select
                     value={guestProgram}
                     onChange={(e) => setGuestProgram(e.target.value)}
-                    className="w-full appearance-none px-3.5 py-2 text-xs sm:text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 text-slate-900 font-medium pr-8"
+                    className="w-full appearance-none px-3 py-2 text-xs sm:text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 text-slate-900 font-medium pr-8"
                   >
                     {(PDEU_OFFERED_PROGRAMS[guestDiscipline] || []).map((prog) => (
                       <option key={prog} value={prog}>
@@ -509,7 +510,7 @@ export const AssistantChat: React.FC<AssistantChatProps> = () => {
                   <select
                     value={guestState}
                     onChange={(e) => setGuestState(e.target.value)}
-                    className="w-full appearance-none px-3.5 py-2 text-xs sm:text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 text-slate-900 font-medium pr-8"
+                    className="w-full appearance-none px-3 py-2 text-xs sm:text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 text-slate-900 font-medium pr-8"
                   >
                     {INDIAN_STATES.map((st) => (
                       <option key={st} value={st}>
