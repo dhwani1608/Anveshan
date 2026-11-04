@@ -20,12 +20,13 @@ interface AssistantChatProps {
   initialSuggested?: { category: string; text: string; description: string }[];
 }
 
-// Inline academic doodle background pattern matching CU Assistant wallpaper
+// Inline academic doodle background pattern
 const AcademicDoodleBackground: React.FC<{ theme: AnveshanTheme }> = ({ theme }) => {
+  const isCrimson = theme === 'crimson';
   const isLight = theme === 'light';
-  // Use amber-tinted stroke for light mode (warm CU wallpaper), white for dark modes
-  const strokeColor = isLight ? '%23b45309' : '%23ffffff';
-  const opacity = isLight ? '0.08' : '0.035';
+  // Subtle red lineart in crimson mode, amber in light, white in dark
+  const strokeColor = isCrimson ? '%23ef4444' : isLight ? '%23b45309' : '%23ffffff';
+  const opacity = isCrimson ? '0.025' : isLight ? '0.08' : '0.035';
 
   return (
     <div
@@ -41,6 +42,7 @@ const AcademicDoodleBackground: React.FC<{ theme: AnveshanTheme }> = ({ theme })
 // Inline formatting helper for **bold** and `code` with theme awareness
 function renderInlineFormatting(text: string, theme: AnveshanTheme) {
   const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g);
+  const isCrimson = theme === 'crimson';
   const isLight = theme === 'light';
 
   return parts.map((part, i) => {
@@ -48,7 +50,9 @@ function renderInlineFormatting(text: string, theme: AnveshanTheme) {
       return (
         <strong
           key={i}
-          className={`font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}
+          className={`font-bold ${
+            isCrimson ? 'text-red-950 font-extrabold' : isLight ? 'text-slate-900' : 'text-white'
+          }`}
         >
           {part.slice(2, -2)}
         </strong>
@@ -56,7 +60,9 @@ function renderInlineFormatting(text: string, theme: AnveshanTheme) {
     }
     if (part.startsWith('`') && part.endsWith('`')) {
       const codeStyle =
-        theme === 'light'
+        isCrimson
+          ? 'bg-red-50 text-red-800 border border-red-200 font-semibold'
+          : isLight
           ? 'bg-amber-100 text-amber-900 font-semibold'
           : theme === 'emerald'
           ? 'bg-[#064132] text-emerald-300'
@@ -78,10 +84,11 @@ function renderInlineFormatting(text: string, theme: AnveshanTheme) {
 const FormattedText: React.FC<{ content: string; theme: AnveshanTheme }> = ({ content, theme }) => {
   if (!content) return null;
   const lines = content.split('\n');
+  const isCrimson = theme === 'crimson';
   const isLight = theme === 'light';
 
   return (
-    <div className={`space-y-2 text-xs leading-relaxed ${isLight ? 'text-slate-800' : 'text-slate-200'}`}>
+    <div className={`space-y-2 text-xs leading-relaxed ${isCrimson ? 'text-slate-900' : isLight ? 'text-slate-800' : 'text-slate-200'}`}>
       {lines.map((line, idx) => {
         const trimmed = line.trim();
         if (!trimmed) return <div key={idx} className="h-1" />;
@@ -89,7 +96,9 @@ const FormattedText: React.FC<{ content: string; theme: AnveshanTheme }> = ({ co
         // Header ###
         if (trimmed.startsWith('### ')) {
           const headerColor =
-            theme === 'light'
+            isCrimson
+              ? 'text-red-700 border-red-200'
+              : isLight
               ? 'text-[#002b49] border-slate-200'
               : theme === 'emerald'
               ? 'text-emerald-300 border-emerald-900/50'
@@ -113,7 +122,7 @@ const FormattedText: React.FC<{ content: string; theme: AnveshanTheme }> = ({ co
             <h5
               key={idx}
               className={`text-xs font-bold mt-2 mb-1 ${
-                isLight ? 'text-slate-900' : 'text-white'
+                isCrimson ? 'text-red-800' : isLight ? 'text-slate-900' : 'text-white'
               }`}
             >
               {trimmed.replace('#### ', '')}
@@ -125,7 +134,9 @@ const FormattedText: React.FC<{ content: string; theme: AnveshanTheme }> = ({ co
         if (trimmed.startsWith('• ') || trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
           const bulletText = trimmed.replace(/^[•\-\*]\s+/, '');
           const dotColor =
-            theme === 'light'
+            isCrimson
+              ? 'text-red-600'
+              : isLight
               ? 'text-[#e87722]'
               : theme === 'emerald'
               ? 'text-emerald-400'
@@ -134,7 +145,7 @@ const FormattedText: React.FC<{ content: string; theme: AnveshanTheme }> = ({ co
           return (
             <div key={idx} className="flex items-start gap-2 pl-2">
               <span className={`${dotColor} font-bold shrink-0 mt-0.5`}>•</span>
-              <div className={isLight ? 'text-slate-800' : 'text-slate-200'}>
+              <div className={isCrimson ? 'text-slate-900' : isLight ? 'text-slate-800' : 'text-slate-200'}>
                 {renderInlineFormatting(bulletText, theme)}
               </div>
             </div>
@@ -143,7 +154,7 @@ const FormattedText: React.FC<{ content: string; theme: AnveshanTheme }> = ({ co
 
         // Standard paragraph
         return (
-          <p key={idx} className={isLight ? 'text-slate-800' : 'text-slate-300'}>
+          <p key={idx} className={isCrimson ? 'text-slate-900 font-normal' : isLight ? 'text-slate-800' : 'text-slate-300'}>
             {renderInlineFormatting(trimmed, theme)}
           </p>
         );
@@ -313,13 +324,16 @@ export const AssistantChat: React.FC<AssistantChatProps> = ({ initialSuggested =
     }
   };
 
+  const isCrimson = theme === 'crimson';
   const isLight = theme === 'light';
   const isDark = theme === 'dark';
   const isEmerald = theme === 'emerald';
   const isPdeu = theme === 'pdeu';
 
-  // Dynamic Theme Colors
-  const containerBg = isLight
+  // Dynamic Theme Colors - Default Red & White with Crisp Pure White Background
+  const containerBg = isCrimson
+    ? 'bg-white text-slate-900'
+    : isLight
     ? 'bg-[#fbf7ee] text-slate-800'
     : isDark
     ? 'bg-[#090d16] text-slate-100'
@@ -327,7 +341,9 @@ export const AssistantChat: React.FC<AssistantChatProps> = ({ initialSuggested =
     ? 'bg-[#031711] text-emerald-100'
     : 'bg-[#001728] text-slate-100';
 
-  const botBubbleStyle = isLight
+  const botBubbleStyle = isCrimson
+    ? 'bg-white border-2 border-red-100 shadow-sm text-slate-900 border-l-4 border-l-red-600'
+    : isLight
     ? 'bg-[#fef9eb] border border-[#fde68a] text-slate-900 shadow-sm'
     : isDark
     ? 'bg-[#0f172a] border border-slate-800 text-slate-100 shadow-md'
@@ -335,11 +351,15 @@ export const AssistantChat: React.FC<AssistantChatProps> = ({ initialSuggested =
     ? 'bg-[#063327] border border-[#0e5c47] text-emerald-100 shadow-md'
     : 'bg-[#00223d] border border-[#0c406b] text-slate-100 shadow-md';
 
-  const userBubbleStyle = isLight
+  const userBubbleStyle = isCrimson
+    ? 'bg-[#dc2626] text-white shadow-md'
+    : isLight
     ? 'bg-gradient-to-r from-[#002b49] to-[#003865] text-white shadow-md'
     : 'bg-gradient-to-r from-[#e87722] to-[#f37021] text-white shadow-md';
 
-  const inputContainerStyle = isLight
+  const inputContainerStyle = isCrimson
+    ? 'bg-white border-2 border-red-200 focus-within:border-red-600 shadow-md text-slate-900'
+    : isLight
     ? 'bg-white border-amber-300/80 shadow-md focus-within:border-[#e87722] text-slate-900'
     : isDark
     ? 'bg-slate-900/90 border-slate-700 focus-within:border-amber-400 text-white'
@@ -354,18 +374,28 @@ export const AssistantChat: React.FC<AssistantChatProps> = ({ initialSuggested =
 
       {/* 2. Top Student Persona & Quick Configuration Banner */}
       <div className={`relative z-10 px-3.5 py-2.5 border-b flex flex-wrap items-center justify-between gap-2 text-xs backdrop-blur-md ${
-        isLight ? 'bg-white/90 border-amber-200/60' : 'bg-black/25 border-white/10'
+        isCrimson
+          ? 'bg-white/95 border-red-100 text-slate-800 shadow-xs'
+          : isLight
+          ? 'bg-white/90 border-amber-200/60'
+          : 'bg-black/25 border-white/10'
       }`}>
         {/* Persona Pill */}
         <div className="flex items-center gap-2 min-w-0">
-          <div className="w-7 h-7 rounded-xl bg-[#e87722]/15 border border-[#e87722]/30 text-[#e87722] flex items-center justify-center font-bold shrink-0">
+          <div className={`w-7 h-7 rounded-xl flex items-center justify-center font-bold shrink-0 ${
+            isCrimson
+              ? 'bg-red-50 border border-red-200 text-red-600'
+              : 'bg-[#e87722]/15 border border-[#e87722]/30 text-[#e87722]'
+          }`}>
             <GraduationCap className="w-4 h-4" />
           </div>
           <div className="min-w-0">
             <div className="font-bold text-xs truncate flex items-center gap-1.5">
               <span>{intakeForm.fullName}</span>
               <span className="opacity-40">•</span>
-              <span className="font-mono text-[11px] text-[#e87722]">{intakeForm.batch ? `Batch ${intakeForm.batch}` : 'Batch 2027'}</span>
+              <span className={`font-mono text-[11px] font-bold ${isCrimson ? 'text-red-600' : 'text-[#e87722]'}`}>
+                {intakeForm.batch ? `Batch ${intakeForm.batch}` : 'Batch 2027'}
+              </span>
             </div>
             <div className="text-[10px] opacity-70 truncate">
               {intakeForm.program}
@@ -379,7 +409,9 @@ export const AssistantChat: React.FC<AssistantChatProps> = ({ initialSuggested =
           <button
             onClick={() => setShowIntakeModal(true)}
             className={`px-2.5 py-1 rounded-lg border text-[11px] font-semibold flex items-center gap-1 transition-colors ${
-              isLight
+              isCrimson
+                ? 'bg-red-50 hover:bg-red-100 text-red-700 border-red-200'
+                : isLight
                 ? 'bg-amber-100/80 hover:bg-amber-200/80 text-amber-900 border-amber-300'
                 : 'bg-white/10 hover:bg-white/20 text-white border-white/15'
             }`}
@@ -394,12 +426,16 @@ export const AssistantChat: React.FC<AssistantChatProps> = ({ initialSuggested =
             onClick={() => setShowGeminiModal(true)}
             className={`px-2.5 py-1 rounded-lg border text-[11px] font-bold flex items-center gap-1.5 transition-colors ${
               geminiStatus?.active
-                ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/25'
+                ? isCrimson
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100'
+                  : 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/25'
+                : isCrimson
+                ? 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100'
                 : 'bg-amber-500/15 text-amber-400 border-amber-500/30 hover:bg-amber-500/25'
             }`}
             title="Configure Google Gemini Live NLP API"
           >
-            <Sparkles className={`w-3.5 h-3.5 ${geminiStatus?.active ? 'text-emerald-400' : 'text-amber-400'}`} />
+            <Sparkles className={`w-3.5 h-3.5 ${geminiStatus?.active ? 'text-emerald-600' : isCrimson ? 'text-red-600' : 'text-amber-400'}`} />
             <span className="hidden sm:inline">{geminiStatus?.active ? 'Gemini 2.0 Active' : 'Setup Gemini'}</span>
           </button>
 
@@ -407,7 +443,11 @@ export const AssistantChat: React.FC<AssistantChatProps> = ({ initialSuggested =
           {messages.length > 0 && (
             <button
               onClick={handleClearChat}
-              className="p-1 px-2 rounded-lg border border-slate-700/40 hover:bg-rose-500/20 hover:text-rose-300 text-slate-400 transition-colors text-[11px] flex items-center gap-1"
+              className={`p-1 px-2 rounded-lg border transition-colors text-[11px] flex items-center gap-1 ${
+                isCrimson
+                  ? 'border-red-200 hover:bg-red-50 text-slate-500 hover:text-red-700'
+                  : 'border-slate-700/40 hover:bg-rose-500/20 hover:text-rose-300 text-slate-400'
+              }`}
               title="Clear Conversation History"
             >
               <RotateCcw className="w-3 h-3" />
@@ -418,46 +458,52 @@ export const AssistantChat: React.FC<AssistantChatProps> = ({ initialSuggested =
 
       {/* 3. Messages Scroll Thread */}
       <div className="relative z-10 flex-1 overflow-y-auto space-y-4 px-3 sm:px-4 py-3 min-h-0 pr-2">
-        {/* Welcome Hero Accolades Banner (Matching Chandigarh University Accolades card in screenshot 2) */}
+        {/* Welcome Hero Accolades Banner */}
         <div className="space-y-3 pt-1">
           {/* Accolades Banner Graphic */}
-          <div className={`p-4 rounded-3xl border shadow-md relative overflow-hidden transition-all ${
-            isLight
+          <div className={`p-4 rounded-3xl border shadow-sm relative overflow-hidden transition-all ${
+            isCrimson
+              ? 'bg-gradient-to-br from-white via-red-50/40 to-white border-2 border-red-200 text-slate-900'
+              : isLight
               ? 'bg-gradient-to-br from-white via-amber-50/50 to-orange-50/40 border-amber-200/80 text-slate-900'
               : 'bg-gradient-to-br from-[#002b49]/90 via-[#001f35]/95 to-[#001220] border-[#0c406b] text-white'
           }`}>
             <div className="flex flex-col sm:flex-row items-center gap-3.5">
               {/* Crest Badge */}
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-[#002b49] via-[#0c406b] to-[#e87722] p-0.5 shadow-xl shrink-0 flex items-center justify-center">
-                <div className="w-full h-full bg-[#001728] rounded-[14px] flex flex-col items-center justify-center">
-                  <span className="font-serif font-black text-amber-400 text-xl leading-none">P</span>
-                  <span className="text-[8px] font-sans font-bold text-amber-200/70 tracking-widest uppercase">PDEU</span>
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-red-700 via-rose-600 to-amber-500 p-0.5 shadow-md shrink-0 flex items-center justify-center">
+                <div className="w-full h-full bg-white rounded-[14px] flex flex-col items-center justify-center border border-red-200">
+                  <span className="font-serif font-black text-red-700 text-xl leading-none">P</span>
+                  <span className="text-[8px] font-sans font-bold text-red-600 tracking-widest uppercase">PDEU</span>
                 </div>
               </div>
 
               {/* Title & Accolades */}
               <div className="space-y-1 text-center sm:text-left flex-1 min-w-0">
                 <div className="flex flex-wrap items-center justify-center sm:justify-start gap-1.5">
-                  <span className="px-2 py-0.5 rounded-full bg-[#e87722] text-white font-extrabold text-[10px] tracking-wider uppercase">
+                  <span className="px-2 py-0.5 rounded-full bg-red-600 text-white font-extrabold text-[10px] tracking-wider uppercase">
                     NAAC A++ (CGPA 3.52)
                   </span>
                   <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
-                    isLight ? 'bg-amber-100 text-amber-900 border-amber-300' : 'bg-black/30 text-amber-300 border-white/10'
+                    isCrimson
+                      ? 'bg-red-50 text-red-800 border-red-200'
+                      : isLight
+                      ? 'bg-amber-100 text-amber-900 border-amber-300'
+                      : 'bg-black/30 text-amber-300 border-white/10'
                   }`}>
-                    NIRF Top Ranked
+                    NIRF Top Ranked Technical University
                   </span>
                 </div>
-                <h4 className="font-serif font-black text-sm sm:text-base tracking-tight">
+                <h4 className="font-serif font-black text-sm sm:text-base tracking-tight text-red-900">
                   PANDIT DEENDAYAL ENERGY UNIVERSITY
                 </h4>
-                <p className="text-[11px] opacity-75 line-clamp-2">
-                  Recognized by UGC • Centre of Excellence in Energy, Technology, Management & Liberal Studies
+                <p className="text-[11px] opacity-80 line-clamp-2">
+                  Recognized by UGC • Schools: Technology (SoT), Energy (SoET), Management (SoM), Liberal Studies (SLS)
                 </p>
               </div>
 
               {/* Package Badge */}
               <div className="shrink-0 text-center sm:text-right hidden md:block">
-                <div className="text-sm font-extrabold text-[#e87722]">₹42.00 LPA</div>
+                <div className="text-sm font-extrabold text-red-600">₹42.00 LPA</div>
                 <div className="text-[10px] opacity-70 font-medium">Highest CTC</div>
               </div>
             </div>
@@ -466,8 +512,8 @@ export const AssistantChat: React.FC<AssistantChatProps> = ({ initialSuggested =
           {/* Assistant Welcome Speech Bubble */}
           <div className="flex items-start gap-2.5 max-w-xl">
             {/* PDEU Avatar */}
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#002b49] to-[#e87722] p-0.5 shadow-sm shrink-0 flex items-center justify-center mt-1">
-              <div className="w-full h-full bg-[#001728] rounded-[10px] flex items-center justify-center text-amber-400 font-serif font-black text-xs">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-red-700 to-rose-600 p-0.5 shadow-sm shrink-0 flex items-center justify-center mt-1">
+              <div className="w-full h-full bg-white rounded-[10px] flex items-center justify-center text-red-700 font-serif font-black text-xs border border-red-100">
                 P
               </div>
             </div>
@@ -475,15 +521,15 @@ export const AssistantChat: React.FC<AssistantChatProps> = ({ initialSuggested =
             {/* Bubble */}
             <div className={`p-4 rounded-3xl rounded-tl-sm space-y-2.5 shadow-sm border ${botBubbleStyle}`}>
               <div className="text-xs sm:text-sm leading-relaxed font-normal">
-                Hello and welcome to <strong>Pandit Deendayal Energy University (PDEU)</strong>. I am <strong>Anveshan</strong>, your virtual academic assistant. Please let me know how may I assist you today?
+                Hello and welcome to <strong>Pandit Deendayal Energy University (PDEU)</strong>. I am <strong>Anveshan</strong>, your official academic assistant. Ask me anything regarding <strong>B.Tech curricula</strong>, <strong>fees & scholarships</strong>, <strong>faculty</strong>, <strong>Raisan campus hostels</strong>, or <strong>placements</strong>.
               </div>
 
-              <div className="flex items-center justify-between text-[10px] opacity-60 pt-1 border-t border-black/5 dark:border-white/5">
-                <span className="font-semibold text-[#e87722] flex items-center gap-1">
-                  <CheckCheck className="w-3 h-3 text-emerald-500" />
-                  PDEU Verified Knowledge
+              <div className="flex items-center justify-between text-[10px] opacity-60 pt-1 border-t border-red-100">
+                <span className="font-semibold text-red-700 flex items-center gap-1">
+                  <CheckCheck className="w-3 h-3 text-emerald-600" />
+                  Grounded on Official PDEU Handbooks
                 </span>
-                <span>10:33 AM</span>
+                <span>Raisan Campus</span>
               </div>
             </div>
           </div>
@@ -492,26 +538,26 @@ export const AssistantChat: React.FC<AssistantChatProps> = ({ initialSuggested =
         {/* Conversation History Messages */}
         {messages.map((msg) => (
           <div key={msg.id} className="space-y-2">
-            {/* User Message (Right Aligned Bubble) */}
+            {/* User Message (Right Aligned Red Bubble with Crisp White Text) */}
             {msg.sender === 'user' && (
               <div className="flex justify-end items-end gap-2 pl-8">
                 <div className={`p-3.5 sm:px-4 sm:py-3 rounded-3xl rounded-tr-sm max-w-lg space-y-1 shadow-md ${userBubbleStyle}`}>
-                  <div className="text-xs sm:text-sm font-medium leading-relaxed">
+                  <div className="text-xs sm:text-sm font-medium leading-relaxed text-white">
                     {msg.content}
                   </div>
-                  <div className="text-[10px] opacity-75 text-right font-mono">
+                  <div className="text-[10px] text-white/80 text-right font-mono">
                     {msg.timestamp}
                   </div>
                 </div>
               </div>
             )}
 
-            {/* Assistant Message (Left Aligned Speech Bubble + Interactive Option Chips) */}
+            {/* Assistant Message (Left Aligned White Card with Red Accents & Clickable Option Chips) */}
             {msg.sender === 'assistant' && (
               <div className="flex items-start gap-2.5 max-w-2xl pr-4">
                 {/* Avatar Badge */}
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#002b49] to-[#e87722] p-0.5 shadow-sm shrink-0 flex items-center justify-center mt-1">
-                  <div className="w-full h-full bg-[#001728] rounded-[10px] flex items-center justify-center text-amber-400 font-serif font-black text-xs">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-red-700 to-rose-600 p-0.5 shadow-sm shrink-0 flex items-center justify-center mt-1">
+                  <div className="w-full h-full bg-white rounded-[10px] flex items-center justify-center text-red-700 font-serif font-black text-xs border border-red-100">
                     P
                   </div>
                 </div>
@@ -525,15 +571,15 @@ export const AssistantChat: React.FC<AssistantChatProps> = ({ initialSuggested =
                     </div>
 
                     {/* Timestamp & Verification Footer */}
-                    <div className="flex items-center justify-between text-[10px] opacity-60 pt-1.5 border-t border-black/5 dark:border-white/5">
+                    <div className="flex items-center justify-between text-[10px] opacity-65 pt-1.5 border-t border-red-100">
                       <div className="flex items-center gap-1.5">
-                        <CheckCheck className="w-3.5 h-3.5 text-emerald-500" />
-                        <span className="font-semibold text-[#e87722]">Grounded & Verified</span>
+                        <CheckCheck className="w-3.5 h-3.5 text-emerald-600" />
+                        <span className="font-semibold text-red-700">Authoritative PDEU Record</span>
                         {msg.latency_ms && (
                           <span className="opacity-60">• {msg.latency_ms.toFixed(0)} ms</span>
                         )}
                       </div>
-                      <span className="font-mono">{msg.timestamp}</span>
+                      <span className="font-mono text-slate-500">{msg.timestamp}</span>
                     </div>
 
                     {/* Collapsible Verification Audit & Graph hop inspector */}
@@ -541,15 +587,19 @@ export const AssistantChat: React.FC<AssistantChatProps> = ({ initialSuggested =
                       <button
                         onClick={() => toggleAudit(msg.id)}
                         className={`w-full flex items-center justify-between p-2 rounded-xl border transition-colors text-[11px] font-semibold ${
-                          isLight ? 'bg-amber-100/50 hover:bg-amber-100 border-amber-300/60 text-slate-800' : 'bg-black/25 hover:bg-black/40 border-white/10 text-slate-200'
+                          isCrimson
+                            ? 'bg-red-50/60 hover:bg-red-100/70 border-red-200 text-red-900'
+                            : isLight
+                            ? 'bg-amber-100/50 hover:bg-amber-100 border-amber-300/60 text-slate-800'
+                            : 'bg-black/25 hover:bg-black/40 border-white/10 text-slate-200'
                         }`}
                       >
                         <div className="flex items-center gap-1.5">
-                          <Network className="w-3 h-3 text-[#e87722]" />
-                          <span>Verification Audit & Knowledge Sources</span>
+                          <Network className="w-3 h-3 text-red-600" />
+                          <span>Show Evidence Citations & Reasoning Steps</span>
                           {msg.citations && msg.citations.length > 0 && (
-                            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-[#e87722]/20 text-[#e87722] font-bold">
-                              {msg.citations.length}
+                            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-red-100 text-red-700 font-bold">
+                              {msg.citations.length} docs
                             </span>
                           )}
                         </div>
@@ -562,13 +612,17 @@ export const AssistantChat: React.FC<AssistantChatProps> = ({ initialSuggested =
 
                       {expandedAudits[msg.id] && (
                         <div className={`mt-2 p-3 rounded-2xl border space-y-3 animate-in fade-in duration-150 ${
-                          isLight ? 'bg-white border-amber-200' : 'bg-black/30 border-white/10'
+                          isCrimson
+                            ? 'bg-red-50/30 border-red-200'
+                            : isLight
+                            ? 'bg-white border-amber-200'
+                            : 'bg-black/30 border-white/10'
                         }`}>
                           {/* Explanatory Academic Context */}
                           {msg.explanation && (
                             <div className="space-y-1">
-                              <div className="text-[10px] font-bold uppercase tracking-wider opacity-60">
-                                Curricular Analysis:
+                              <div className="text-[10px] font-bold uppercase tracking-wider text-red-800">
+                                Official Curricular Breakdown:
                               </div>
                               <FormattedText content={msg.explanation} theme={theme} />
                             </div>
@@ -576,15 +630,15 @@ export const AssistantChat: React.FC<AssistantChatProps> = ({ initialSuggested =
 
                           {/* Visual Graph Steps */}
                           {msg.graph_traversal && msg.graph_traversal.length > 0 && (
-                            <div className="space-y-1.5 pt-2 border-t border-black/10 dark:border-white/10">
+                            <div className="space-y-1.5 pt-2 border-t border-red-200">
                               <VisualReasoningGraph steps={msg.graph_traversal} />
                             </div>
                           )}
 
                           {/* Official Document Sources */}
                           {msg.citations && msg.citations.length > 0 && (
-                            <div className="space-y-1.5 pt-2 border-t border-black/10 dark:border-white/10">
-                              <div className="text-[10px] font-bold uppercase tracking-wider opacity-60">
+                            <div className="space-y-1.5 pt-2 border-t border-red-200">
+                              <div className="text-[10px] font-bold uppercase tracking-wider text-red-800">
                                 Verified Handbooks & Circulars ({msg.citations.length})
                               </div>
                               <div className="grid grid-cols-1 gap-1.5">
@@ -597,22 +651,20 @@ export const AssistantChat: React.FC<AssistantChatProps> = ({ initialSuggested =
                                   return (
                                     <div
                                       key={cit.citation_id}
-                                      className={`p-2 rounded-xl border flex items-center justify-between gap-2 ${
-                                        isLight ? 'bg-amber-50/50 border-amber-200' : 'bg-black/20 border-white/10'
-                                      }`}
+                                      className="p-2 rounded-xl border flex items-center justify-between gap-2 bg-white border-red-200"
                                     >
                                       <div className="min-w-0 flex-1">
                                         <div className="flex items-center gap-1.5">
                                           {isPdf ? (
-                                            <FileText className="w-3 h-3 text-rose-500 shrink-0" />
+                                            <FileText className="w-3 h-3 text-red-600 shrink-0" />
                                           ) : (
-                                            <Globe className="w-3 h-3 text-blue-500 shrink-0" />
+                                            <Globe className="w-3 h-3 text-blue-600 shrink-0" />
                                           )}
-                                          <span className="font-bold text-xs truncate">
+                                          <span className="font-bold text-xs truncate text-slate-900">
                                             {cit.document_title}
                                           </span>
                                         </div>
-                                        <p className="text-[10px] opacity-70 italic truncate pl-4">
+                                        <p className="text-[10px] opacity-70 italic truncate pl-4 text-slate-700">
                                           "{cit.snippet}"
                                         </p>
                                       </div>
@@ -620,7 +672,7 @@ export const AssistantChat: React.FC<AssistantChatProps> = ({ initialSuggested =
                                       <div className="flex items-center gap-1 shrink-0">
                                         <button
                                           onClick={() => setActiveCitation(cit)}
-                                          className="px-2 py-0.5 rounded-lg bg-black/10 hover:bg-black/20 text-[10px] font-bold transition-all"
+                                          className="px-2 py-0.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-[10px] font-bold transition-all"
                                         >
                                           Preview
                                         </button>
@@ -629,7 +681,7 @@ export const AssistantChat: React.FC<AssistantChatProps> = ({ initialSuggested =
                                             href={targetHref}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="px-2 py-0.5 rounded-lg bg-[#e87722]/15 text-[#e87722] hover:bg-[#e87722]/25 text-[10px] font-bold transition-all"
+                                            className="px-2 py-0.5 rounded-lg bg-red-600 text-white hover:bg-red-700 text-[10px] font-bold transition-all"
                                           >
                                             Open ↗
                                           </a>
@@ -646,20 +698,22 @@ export const AssistantChat: React.FC<AssistantChatProps> = ({ initialSuggested =
                     </div>
                   </div>
 
-                  {/* Interactive Quick-Reply Option Chips (Matching CU Assistant in screenshot 3, 4, 5) */}
+                  {/* Interactive Quick-Reply Option Chips (Red & White Pill Buttons) */}
                   {msg.related_actions && msg.related_actions.length > 0 && (
                     <div className="flex flex-wrap gap-2 pt-1 pl-1">
                       {msg.related_actions.map((act, aIdx) => (
                         <button
                           key={aIdx}
                           onClick={() => handleSend(act)}
-                          className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all shadow-sm hover:scale-105 active:scale-95 flex items-center gap-1.5 ${
-                            isLight
+                          className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shadow-sm hover:scale-105 active:scale-95 flex items-center gap-1.5 ${
+                            isCrimson
+                              ? 'bg-white hover:bg-red-600 text-red-600 hover:text-white border-2 border-red-500 shadow-red-100'
+                              : isLight
                               ? 'bg-[#fef3c7] hover:bg-[#fde68a] text-[#92400e] border border-[#f59e0b]/50 shadow-amber-200/50'
                               : isEmerald
-                              ? 'bg-[#064e3b]/80 hover:bg-[#065f46] text-emerald-200 border border-emerald-500/40 shadow-emerald-950/40'
+                              ? 'bg-[#064e3b]/80 hover:bg-[#065f46] text-emerald-200 border border-emerald-500/40'
                               : isPdeu
-                              ? 'bg-[#e87722]/20 hover:bg-[#e87722]/35 text-amber-300 border border-[#e87722]/50 shadow-orange-950/40'
+                              ? 'bg-[#e87722]/20 hover:bg-[#e87722]/35 text-amber-300 border border-[#e87722]/50'
                               : 'bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30'
                           }`}
                         >
@@ -676,10 +730,10 @@ export const AssistantChat: React.FC<AssistantChatProps> = ({ initialSuggested =
 
         {/* Loading Spinner Indicator */}
         {loading && (
-          <div className="flex items-center gap-2.5 p-4 rounded-3xl border shadow-md max-w-sm animate-pulse text-xs ml-10 border-amber-300/50 bg-amber-500/10">
-            <RefreshCw className="w-4 h-4 text-[#e87722] animate-spin shrink-0" />
-            <div className="font-semibold">
-              Querying PDEU Knowledge Base & verifying handbooks...
+          <div className="flex items-center gap-2.5 p-4 rounded-3xl border shadow-sm max-w-sm animate-pulse text-xs ml-10 border-red-200 bg-red-50 text-red-900 font-semibold">
+            <RefreshCw className="w-4 h-4 text-red-600 animate-spin shrink-0" />
+            <div>
+              Verifying official PDEU records & handbooks...
             </div>
           </div>
         )}
@@ -688,45 +742,65 @@ export const AssistantChat: React.FC<AssistantChatProps> = ({ initialSuggested =
       </div>
 
       {/* 4. Bottom Controls: Quick Chips + Pill Input + Footer Branding */}
-      <div className="relative z-10 px-3.5 sm:px-4 pb-3 pt-1 shrink-0 space-y-2">
+      <div className="relative z-10 px-3.5 sm:px-4 pb-3 pt-1 shrink-0 space-y-2 bg-white">
         {/* Quick Follow-up Question Pills above input */}
         <div className="flex items-center gap-1.5 overflow-x-auto py-1 scrollbar-none text-[11px] shrink-0">
           <button
-            onClick={() => handleSend('The semester fee structure at PDEU varies by program. What are the semester fees?')}
+            onClick={() => handleSend('What is the official PDEU tuition fee and institutional fee structure for B.Tech and MBA?')}
             className={`px-3 py-1 rounded-full border shrink-0 transition-all font-semibold flex items-center gap-1 hover:scale-105 ${
-              isLight ? 'bg-white hover:bg-amber-50 border-amber-300 text-slate-800' : 'bg-black/30 hover:bg-white/10 border-white/15 text-slate-200'
+              isCrimson
+                ? 'bg-white hover:bg-red-50 border-red-200 text-red-700 shadow-xs'
+                : isLight
+                ? 'bg-white hover:bg-amber-50 border-amber-300 text-slate-800'
+                : 'bg-black/30 hover:bg-white/10 border-white/15 text-slate-200'
             }`}
           >
-            <span>💰 Semester Fees</span>
+            <span>💰 PDEU Tuition Fees</span>
           </button>
           <button
-            onClick={() => handleSend('What are the hostel room options and annual charges for students at PDEU?')}
+            onClick={() => handleSend('What are the residential hostel options and mess charges on the Raisan PDEU campus?')}
             className={`px-3 py-1 rounded-full border shrink-0 transition-all font-semibold flex items-center gap-1 hover:scale-105 ${
-              isLight ? 'bg-white hover:bg-amber-50 border-amber-300 text-slate-800' : 'bg-black/30 hover:bg-white/10 border-white/15 text-slate-200'
+              isCrimson
+                ? 'bg-white hover:bg-red-50 border-red-200 text-red-700 shadow-xs'
+                : isLight
+                ? 'bg-white hover:bg-amber-50 border-amber-300 text-slate-800'
+                : 'bg-black/30 hover:bg-white/10 border-white/15 text-slate-200'
             }`}
           >
-            <span>🏠 Hostel & Mess</span>
+            <span>🏠 Raisan Hostel & Mess</span>
           </button>
           <button
-            onClick={() => handleSend('What scholarships and financial waivers are available at PDEU?')}
+            onClick={() => handleSend('What scholarships are offered for ACPC and JEE Main rankers at PDEU?')}
             className={`px-3 py-1 rounded-full border shrink-0 transition-all font-semibold flex items-center gap-1 hover:scale-105 ${
-              isLight ? 'bg-white hover:bg-amber-50 border-amber-300 text-slate-800' : 'bg-black/30 hover:bg-white/10 border-white/15 text-slate-200'
+              isCrimson
+                ? 'bg-white hover:bg-red-50 border-red-200 text-red-700 shadow-xs'
+                : isLight
+                ? 'bg-white hover:bg-amber-50 border-amber-300 text-slate-800'
+                : 'bg-black/30 hover:bg-white/10 border-white/15 text-slate-200'
             }`}
           >
-            <span>🎖️ Scholarships</span>
+            <span>🎖️ Merit Scholarships</span>
           </button>
           <button
-            onClick={() => handleSend('What are the 1st-year subjects for B.Tech programs at PDEU?')}
+            onClick={() => handleSend('What are the 1st year foundation courses for B.Tech Computer Engineering at PDEU?')}
             className={`px-3 py-1 rounded-full border shrink-0 transition-all font-semibold flex items-center gap-1 hover:scale-105 ${
-              isLight ? 'bg-white hover:bg-amber-50 border-amber-300 text-slate-800' : 'bg-black/30 hover:bg-white/10 border-white/15 text-slate-200'
+              isCrimson
+                ? 'bg-white hover:bg-red-50 border-red-200 text-red-700 shadow-xs'
+                : isLight
+                ? 'bg-white hover:bg-amber-50 border-amber-300 text-slate-800'
+                : 'bg-black/30 hover:bg-white/10 border-white/15 text-slate-200'
             }`}
           >
-            <span>📚 1st Year Subjects</span>
+            <span>📚 1st Year Syllabus (160 Credits)</span>
           </button>
           <button
             onClick={() => handleSend('give details of proffesor sidheshwar routray')}
             className={`px-3 py-1 rounded-full border shrink-0 transition-all font-semibold flex items-center gap-1 hover:scale-105 ${
-              isLight ? 'bg-white hover:bg-amber-50 border-amber-300 text-slate-800' : 'bg-black/30 hover:bg-white/10 border-white/15 text-slate-200'
+              isCrimson
+                ? 'bg-white hover:bg-red-50 border-red-200 text-red-700 shadow-xs'
+                : isLight
+                ? 'bg-white hover:bg-amber-50 border-amber-300 text-slate-800'
+                : 'bg-black/30 hover:bg-white/10 border-white/15 text-slate-200'
             }`}
           >
             <span>👨‍🏫 Dr. Sidheswar Routray</span>
@@ -734,54 +808,62 @@ export const AssistantChat: React.FC<AssistantChatProps> = ({ initialSuggested =
           <button
             onClick={() => handleSend('What is the highest and average placement package at PDEU, and top recruiters?')}
             className={`px-3 py-1 rounded-full border shrink-0 transition-all font-semibold flex items-center gap-1 hover:scale-105 ${
-              isLight ? 'bg-white hover:bg-amber-50 border-amber-300 text-slate-800' : 'bg-black/30 hover:bg-white/10 border-white/15 text-slate-200'
+              isCrimson
+                ? 'bg-white hover:bg-red-50 border-red-200 text-red-700 shadow-xs'
+                : isLight
+                ? 'bg-white hover:bg-amber-50 border-amber-300 text-slate-800'
+                : 'bg-black/30 hover:bg-white/10 border-white/15 text-slate-200'
             }`}
           >
-            <span>💼 Placements & CTC</span>
+            <span>💼 ₹42 LPA Placements</span>
           </button>
         </div>
 
         {/* Pill-Shaped Input Container with Circular Send Button */}
-        <div className={`rounded-full p-1.5 pl-4 flex items-center gap-2 shadow-lg border transition-all ${inputContainerStyle}`}>
+        <div className={`rounded-full p-1.5 pl-4 flex items-center gap-2 shadow-sm border transition-all ${inputContainerStyle}`}>
           <input
             type="text"
             value={inputQuery}
             onChange={(e) => setInputQuery(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-            placeholder="Type your message..."
-            className="flex-1 bg-transparent py-2 text-xs sm:text-sm focus:outline-none font-medium placeholder-slate-400"
+            placeholder="Type your message about PDEU..."
+            className="flex-1 bg-transparent py-2 text-xs sm:text-sm focus:outline-none font-medium text-slate-900 placeholder-slate-400"
           />
           <button
             onClick={() => handleSend()}
             disabled={!inputQuery.trim() || loading}
-            className="w-10 h-10 rounded-full bg-gradient-to-r from-[#e87722] to-[#f37021] hover:from-[#d96711] hover:to-[#e87722] disabled:opacity-40 text-white flex items-center justify-center transition-all shadow-md shrink-0 hover:scale-105 active:scale-95"
+            className={`w-10 h-10 rounded-full flex items-center justify-center transition-all shadow-md shrink-0 hover:scale-105 active:scale-95 disabled:opacity-40 text-white ${
+              isCrimson
+                ? 'bg-red-600 hover:bg-red-700 shadow-red-500/25'
+                : 'bg-gradient-to-r from-[#e87722] to-[#f37021] hover:from-[#d96711] hover:to-[#e87722]'
+            }`}
             title="Send query"
           >
             <Send className="w-4 h-4 ml-0.5" />
           </button>
         </div>
 
-        {/* Footer Branding (Matching 'powered by SUPERBOT' layout in screenshot 1-5) */}
-        <div className="text-center pt-1.5 text-[10px] tracking-wide opacity-70 font-semibold uppercase flex items-center justify-center gap-1.5">
+        {/* Footer Branding */}
+        <div className="text-center pt-1.5 text-[10px] tracking-wide opacity-70 font-semibold uppercase flex items-center justify-center gap-1.5 text-slate-500">
           <span>powered by</span>
-          <span className="font-extrabold text-[#e87722] tracking-wider">ANVESHAN AI</span>
+          <span className="font-extrabold text-red-600 tracking-wider">ANVESHAN AI</span>
           <span>•</span>
           <span>Pandit Deendayal Energy University</span>
         </div>
       </div>
 
-      {/* Student Profile / Lead Generation Intake Modal (Matching Screenshot 1) */}
+      {/* Student Profile / Lead Generation Intake Modal */}
       {showIntakeModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white text-slate-900 rounded-3xl p-6 sm:p-7 max-w-md w-full shadow-2xl border border-slate-200 space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white text-slate-900 rounded-3xl p-6 sm:p-7 max-w-md w-full shadow-2xl border border-red-200 space-y-4">
             {/* Header */}
             <div className="text-center space-y-1">
-              <div className="w-12 h-12 rounded-2xl bg-[#e87722]/15 text-[#e87722] mx-auto flex items-center justify-center font-bold mb-2">
+              <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-600 mx-auto flex items-center justify-center font-bold mb-2 border border-red-200">
                 <GraduationCap className="w-6 h-6" />
               </div>
-              <h3 className="text-xl font-extrabold text-slate-900">Welcome!</h3>
+              <h3 className="text-xl font-extrabold text-slate-900">Welcome to PDEU Copilot</h3>
               <p className="text-xs text-slate-500">
-                Please share the following details to personalize your PDEU academic copilot
+                Please share your academic details to personalize your grounded curriculum experience
               </p>
             </div>
 
@@ -795,23 +877,23 @@ export const AssistantChat: React.FC<AssistantChatProps> = ({ initialSuggested =
                   value={intakeForm.fullName}
                   onChange={(e) => setIntakeForm({ ...intakeForm, fullName: e.target.value })}
                   placeholder="e.g. Dhwani Vyas"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:border-[#e87722] focus:outline-none text-slate-900"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:border-red-600 focus:outline-none text-slate-900"
                 />
               </div>
 
               {/* Email Address with live PDPU parser */}
               <div>
-                <label className="font-bold text-slate-700 block mb-1">College / Email Address</label>
+                <label className="font-bold text-slate-700 block mb-1">College Email Address (@pdpu.ac.in)</label>
                 <input
                   type="email"
                   value={intakeForm.email}
                   onChange={(e) => handleEmailChange(e.target.value)}
                   placeholder="e.g. 23bcp116@sot.pdpu.ac.in"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:border-[#e87722] focus:outline-none text-slate-900 font-mono text-xs"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:border-red-600 focus:outline-none text-slate-900 font-mono text-xs"
                 />
                 {intakeForm.email.includes('@') && parsePDPUEmail(intakeForm.email).isValid && (
-                  <div className="mt-1 text-[11px] text-emerald-600 font-semibold flex items-center gap-1">
-                    <CheckCircle2 className="w-3 h-3" />
+                  <div className="mt-1 text-[11px] text-emerald-700 font-semibold flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
                     <span>PDEU Student Detected: {intakeForm.program} • Batch {intakeForm.batch}</span>
                   </div>
                 )}
@@ -820,7 +902,7 @@ export const AssistantChat: React.FC<AssistantChatProps> = ({ initialSuggested =
               {/* Mobile Number with +91 Country selector */}
               <div>
                 <label className="font-bold text-slate-700 block mb-1">Mobile Number</label>
-                <div className="flex rounded-xl border border-slate-300 overflow-hidden focus-within:border-[#e87722]">
+                <div className="flex rounded-xl border border-slate-300 overflow-hidden focus-within:border-red-600">
                   <div className="bg-slate-100 px-3 py-2.5 font-bold text-slate-700 flex items-center gap-1 border-r border-slate-300 text-xs shrink-0">
                     <span>IN +91</span>
                   </div>
@@ -840,13 +922,12 @@ export const AssistantChat: React.FC<AssistantChatProps> = ({ initialSuggested =
                 <select
                   value={intakeForm.discipline}
                   onChange={(e) => setIntakeForm({ ...intakeForm, discipline: e.target.value })}
-                  className="w-full px-3 py-2.5 rounded-xl border border-slate-300 focus:border-[#e87722] focus:outline-none bg-white text-slate-800"
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-300 focus:border-red-600 focus:outline-none bg-white text-slate-800"
                 >
                   <option value="School of Technology (SoT)">School of Technology (SoT)</option>
                   <option value="School of Energy Technology (SoET)">School of Energy Technology (SoET)</option>
-                  <option value="School of Petroleum Management (SPM)">School of Petroleum Management (SPM)</option>
+                  <option value="School of Management (SoM)">School of Management (SoM)</option>
                   <option value="School of Liberal Studies (SLS)">School of Liberal Studies (SLS)</option>
-                  <option value="School of Law (SoL)">School of Law (SoL)</option>
                 </select>
               </div>
 
@@ -856,33 +937,35 @@ export const AssistantChat: React.FC<AssistantChatProps> = ({ initialSuggested =
                 <select
                   value={intakeForm.program}
                   onChange={(e) => setIntakeForm({ ...intakeForm, program: e.target.value })}
-                  className="w-full px-3 py-2.5 rounded-xl border border-slate-300 focus:border-[#e87722] focus:outline-none bg-white text-slate-800"
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-300 focus:border-red-600 focus:outline-none bg-white text-slate-800"
                 >
-                  <option value="B.Tech Computer Science & Engineering">B.Tech Computer Science & Engineering</option>
-                  <option value="B.Tech Information & Communication Technology">B.Tech Information & Communication Technology</option>
-                  <option value="B.Tech Chemical Engineering">B.Tech Chemical Engineering</option>
-                  <option value="B.Tech Mechanical Engineering">B.Tech Mechanical Engineering</option>
-                  <option value="B.Tech Petroleum Engineering">B.Tech Petroleum Engineering</option>
-                  <option value="MBA (Energy & Infrastructure)">MBA (Energy & Infrastructure)</option>
-                  <option value="BBA (Hons.)">BBA (Hons.)</option>
-                  <option value="B.Sc (Hons.)">B.Sc (Hons.)</option>
+                  <option value="B.Tech. Computer Engineering">B.Tech. Computer Engineering (CSE)</option>
+                  <option value="B.Tech. Information and Communication Technology(ICT)">B.Tech. Information & Communication Technology (ICT)</option>
+                  <option value="B.Tech. Computer Science and Business Systems">B.Tech. Computer Science & Business Systems (CSBS)</option>
+                  <option value="B.Tech. Chemical Engineering">B.Tech. Chemical Engineering</option>
+                  <option value="B.Tech. Petroleum Engineering">B.Tech. Petroleum Engineering</option>
+                  <option value="B.Tech. Mechanical Engineering">B.Tech. Mechanical Engineering</option>
+                  <option value="B.Tech. Civil Engineering">B.Tech. Civil Engineering</option>
+                  <option value="B.Tech. Electrical Engineering">B.Tech. Electrical Engineering</option>
+                  <option value="B.Tech. Biotechnology">B.Tech. Biotechnology</option>
+                  <option value="Master of Business Administration">Master of Business Administration (MBA)</option>
+                  <option value="B.Com (Hons.)">B.Com (Hons.)</option>
+                  <option value="B.A/B.B.A( Hons.)">B.A. / B.B.A. (Hons.)</option>
+                  <option value="B.Sc.(Hons.) Data Science">B.Sc. (Hons.) Data Science</option>
                 </select>
               </div>
 
               {/* State Dropdown */}
               <div>
-                <label className="font-bold text-slate-700 block mb-1">State / Domicile</label>
+                <label className="font-bold text-slate-700 block mb-1">Admission Category / State</label>
                 <select
                   value={intakeForm.state}
                   onChange={(e) => setIntakeForm({ ...intakeForm, state: e.target.value })}
-                  className="w-full px-3 py-2.5 rounded-xl border border-slate-300 focus:border-[#e87722] focus:outline-none bg-white text-slate-800"
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-300 focus:border-red-600 focus:outline-none bg-white text-slate-800"
                 >
-                  <option value="Gujarat">Gujarat (ACPC Home State)</option>
-                  <option value="Maharashtra">Maharashtra (All India JEE)</option>
-                  <option value="Rajasthan">Rajasthan (All India JEE)</option>
-                  <option value="Delhi NCR">Delhi NCR (All India JEE)</option>
-                  <option value="Madhya Pradesh">Madhya Pradesh (All India JEE)</option>
-                  <option value="Other">Other State / NRI</option>
+                  <option value="Gujarat">Gujarat (50% ACPC Quota)</option>
+                  <option value="All India JEE">All India (50% JEE Main CRL Quota)</option>
+                  <option value="NRI / NRI Sponsored">NRI / NRI Sponsored (15% Supernumerary)</option>
                 </select>
               </div>
             </div>
@@ -892,7 +975,7 @@ export const AssistantChat: React.FC<AssistantChatProps> = ({ initialSuggested =
               <button
                 type="button"
                 onClick={() => setShowIntakeModal(false)}
-                className="w-full py-3 rounded-2xl bg-gradient-to-r from-[#e87722] to-[#f37021] hover:from-[#d96711] hover:to-[#e87722] text-white font-extrabold text-sm shadow-lg shadow-orange-500/25 transition-all hover:scale-[1.02]"
+                className="w-full py-3 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-extrabold text-sm shadow-lg shadow-red-500/25 transition-all hover:scale-[1.02]"
               >
                 Start Chatting →
               </button>
@@ -901,7 +984,7 @@ export const AssistantChat: React.FC<AssistantChatProps> = ({ initialSuggested =
                 onClick={() => setShowIntakeModal(false)}
                 className="w-full py-2 text-center text-xs text-slate-500 hover:text-slate-800 font-medium"
               >
-                Skip / Continue as Guest
+                Continue as Student / Guest
               </button>
             </div>
           </div>
@@ -920,7 +1003,7 @@ export const AssistantChat: React.FC<AssistantChatProps> = ({ initialSuggested =
           <div className="bg-slate-900 text-white rounded-3xl p-6 sm:p-7 max-w-md w-full shadow-2xl border border-slate-700 space-y-4">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div className="flex items-center gap-2">
-                <div className="p-2 rounded-xl bg-[#e87722]/20 text-[#e87722]">
+                <div className="p-2 rounded-xl bg-red-500/20 text-red-400">
                   <Sparkles className="w-5 h-5" />
                 </div>
                 <div>
@@ -946,7 +1029,7 @@ export const AssistantChat: React.FC<AssistantChatProps> = ({ initialSuggested =
                   href="https://aistudio.google.com/app/apikey"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-[#e87722] hover:underline flex items-center gap-1 font-semibold"
+                  className="text-red-400 hover:underline flex items-center gap-1 font-semibold"
                 >
                   <span>Google AI Studio Key Generator</span>
                   <ExternalLink className="w-3 h-3" />
@@ -963,7 +1046,7 @@ export const AssistantChat: React.FC<AssistantChatProps> = ({ initialSuggested =
 
             <div className="space-y-1.5 text-xs">
               <label className="font-bold text-slate-300 block">Gemini API Key</label>
-              <div className="flex items-center bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 focus-within:border-[#e87722] transition-all">
+              <div className="flex items-center bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 focus-within:border-red-500 transition-all">
                 <Key className="w-4 h-4 text-slate-400 mr-2 shrink-0" />
                 <input
                   type="password"
@@ -987,7 +1070,7 @@ export const AssistantChat: React.FC<AssistantChatProps> = ({ initialSuggested =
                 type="button"
                 disabled={!geminiKeyInput.trim() || savingKey}
                 onClick={handleSaveGeminiKey}
-                className="px-5 py-2 rounded-xl bg-[#e87722] hover:bg-[#d96711] disabled:opacity-40 text-white font-bold text-xs flex items-center gap-1.5 transition-colors shadow-md"
+                className="px-5 py-2 rounded-xl bg-red-600 hover:bg-red-700 disabled:opacity-40 text-white font-bold text-xs flex items-center gap-1.5 transition-colors shadow-md"
               >
                 <span>{savingKey ? 'Activating...' : 'Save & Activate'}</span>
                 <Sparkles className="w-3.5 h-3.5 text-white" />

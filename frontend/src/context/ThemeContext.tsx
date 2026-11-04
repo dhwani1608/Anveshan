@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-export type AnveshanTheme = 'dark' | 'light' | 'pdeu' | 'emerald';
+export type AnveshanTheme = 'crimson' | 'light' | 'pdeu' | 'dark' | 'emerald';
 export type AnveshanViewMode = 'sidebar' | 'floating' | 'expanded';
 
 interface ThemeContextType {
@@ -20,15 +20,18 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [theme, setThemeState] = useState<AnveshanTheme>('pdeu');
+  // Default to Red & White theme with crisp white background
+  const [theme, setThemeState] = useState<AnveshanTheme>('crimson');
   const [viewMode, setViewModeState] = useState<AnveshanViewMode>('sidebar');
   const [isAiOpen, setIsAiOpen] = useState<boolean>(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const savedTheme = localStorage.getItem('anveshan_theme') as AnveshanTheme | null;
-      if (savedTheme && ['dark', 'light', 'pdeu', 'emerald'].includes(savedTheme)) {
+      if (savedTheme && ['crimson', 'light', 'pdeu', 'dark', 'emerald'].includes(savedTheme)) {
         setThemeState(savedTheme);
+      } else {
+        setThemeState('crimson');
       }
       const savedMode = localStorage.getItem('anveshan_view_mode') as AnveshanViewMode | null;
       if (savedMode && ['sidebar', 'floating', 'expanded'].includes(savedMode)) {

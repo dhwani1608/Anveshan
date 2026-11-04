@@ -26,10 +26,11 @@ export const FloatingAssistant: React.FC = () => {
   const [showThemeMenu, setShowThemeMenu] = useState(false);
 
   const themeOptions: { id: AnveshanTheme; label: string; icon: string; previewClass: string }[] = [
-    { id: 'pdeu', label: 'PDEU Heritage', icon: '🏛️', previewClass: 'bg-[#002b49] border-[#e87722]' },
-    { id: 'dark', label: 'Dark Obsidian', icon: '🌙', previewClass: 'bg-slate-900 border-amber-400' },
-    { id: 'light', label: 'Light Academic', icon: '☀️', previewClass: 'bg-white border-slate-300' },
-    { id: 'emerald', label: 'Emerald Sage', icon: '🌲', previewClass: 'bg-[#064e3b] border-emerald-400' }
+    { id: 'crimson', label: 'Red & White Academic', icon: '🔴', previewClass: 'bg-white border-red-600' },
+    { id: 'light', label: 'Light Clean', icon: '☀️', previewClass: 'bg-white border-slate-300' },
+    { id: 'pdeu', label: 'PDEU Heritage Navy', icon: '🏛️', previewClass: 'bg-[#002b49] border-[#e87722]' },
+    { id: 'emerald', label: 'Emerald Sage', icon: '🌲', previewClass: 'bg-[#064e3b] border-emerald-400' },
+    { id: 'dark', label: 'Dark Obsidian', icon: '🌙', previewClass: 'bg-slate-900 border-amber-400' }
   ];
 
   // Container styling depending on active view mode and theme
@@ -48,6 +49,8 @@ export const FloatingAssistant: React.FC = () => {
   // Header background theme styles
   const getHeaderStyles = () => {
     switch (theme) {
+      case 'crimson':
+        return 'bg-gradient-to-r from-red-700 via-red-600 to-rose-700 border-b border-red-700 text-white';
       case 'light':
         return 'bg-white border-b border-slate-200 text-slate-900';
       case 'dark':
@@ -62,7 +65,8 @@ export const FloatingAssistant: React.FC = () => {
 
   const getContainerBackground = () => {
     switch (theme) {
-      case 'light': return 'bg-slate-50 border-slate-300';
+      case 'crimson': return 'bg-white border-red-300 shadow-2xl';
+      case 'light': return 'bg-white border-slate-300 shadow-2xl';
       case 'dark': return 'bg-[#090d16] border-slate-800';
       case 'emerald': return 'bg-[#031711] border-[#0f766e]';
       case 'pdeu': default: return 'bg-[#001728] border-[#0c406b]';
@@ -84,7 +88,9 @@ export const FloatingAssistant: React.FC = () => {
         {!isAiOpen && (
           <div className="hidden sm:flex items-center gap-1.5 bg-white/95 backdrop-blur-md hover:bg-orange-50 text-slate-900 pl-4 pr-3 py-2 rounded-full shadow-xl border border-slate-200 hover:border-[#e87722] text-xs font-bold transition-all hover:scale-105 group">
             <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-ping mr-1" />
-            <span className="text-[#002b49] group-hover:text-[#e87722]">Ask Anveshan AI</span>
+            <span className={theme === 'crimson' ? 'text-red-700 group-hover:text-red-800' : 'text-[#002b49] group-hover:text-[#e87722]'}>
+              Ask Anveshan AI
+            </span>
             
             {/* Quick Mode Button in Pill */}
             <button
@@ -92,7 +98,11 @@ export const FloatingAssistant: React.FC = () => {
                 setViewMode('sidebar');
                 setIsAiOpen(true);
               }}
-              className="ml-1 px-2 py-0.5 rounded-full bg-slate-100 hover:bg-[#e87722] hover:text-white text-[10px] font-mono text-slate-600 transition-colors"
+              className={`ml-1 px-2 py-0.5 rounded-full text-[10px] font-mono transition-colors ${
+                theme === 'crimson'
+                  ? 'bg-red-50 hover:bg-red-600 hover:text-white text-red-700'
+                  : 'bg-slate-100 hover:bg-[#e87722] hover:text-white text-slate-600'
+              }`}
               title="Open directly in right docked sidebar"
             >
               Sidebar 📌
@@ -105,7 +115,9 @@ export const FloatingAssistant: React.FC = () => {
           onClick={toggleAi}
           className={`relative group p-4 rounded-full shadow-2xl transition-all duration-300 hover:scale-110 border-2 ring-4 ${
             isAiOpen
-              ? 'bg-rose-600 hover:bg-rose-700 text-white border-white ring-rose-500/30'
+              ? 'bg-slate-900 hover:bg-black text-white border-white ring-slate-500/30'
+              : theme === 'crimson'
+              ? 'bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white border-white ring-red-500/30'
               : 'bg-gradient-to-r from-[#002b49] to-[#0c406b] hover:from-[#e87722] hover:to-[#f37021] text-white border-white ring-[#e87722]/30'
           }`}
           title={isAiOpen ? 'Close Anveshan Assistant' : 'Open Anveshan AI Assistant'}
