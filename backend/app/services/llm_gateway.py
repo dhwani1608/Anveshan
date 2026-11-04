@@ -36,7 +36,8 @@ class LLMGateway:
         user_context: Dict[str, Any],
         conflicts: List[Dict[str, Any]],
         course_eligibility: Optional[Dict[str, Any]] = None,
-        runtime_key: Optional[str] = None
+        runtime_key: Optional[str] = None,
+        conversational_intent: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Executes reasoning over retrieved evidence, knowledge graph, and user context.
@@ -69,7 +70,7 @@ class LLMGateway:
                 print(f"[LLM Gateway] OpenAI API call failed, falling back to Grounded Engine: {e}")
 
         # 3. Default: Grounded Local Reasoning Engine (Fast, deterministic, guaranteed 0 hallucinations)
-        return self._local_grounded_reasoner(query, retrieved_chunks, graph_traversals, user_context, conflicts, course_eligibility)
+        return self._local_grounded_reasoner(query, retrieved_chunks, graph_traversals, user_context, conflicts, course_eligibility, conversational_intent)
 
     def _local_grounded_reasoner(
         self,
@@ -78,13 +79,170 @@ class LLMGateway:
         graph_traversals: List[Dict[str, str]],
         user_context: Dict[str, Any],
         conflicts: List[Dict[str, Any]],
-        course_eligibility: Optional[Dict[str, Any]] = None
+        course_eligibility: Optional[Dict[str, Any]] = None,
+        conversational_intent: Optional[str] = None
     ) -> Dict[str, Any]:
         query_lower = query.lower()
         batch = user_context.get("batch", "2027")
         program = user_context.get("program", "B.Tech CSE")
         semester = user_context.get("semester", 7)
         completed_courses = user_context.get("completed_courses", [])
+        student_name = user_context.get("student_name", "Student")
+        roll_num = user_context.get("roll_number", "")
+        role = user_context.get("role", "student")
+        is_student_user = role == "student" and roll_num and "guest" not in roll_num.lower()
+
+        # 0. Conversational Intent Handling (Natural Friendly Dialogue)
+        clean_q = re.sub(r"[^\w\s]", "", query_lower).strip()
+        is_greeting = conversational_intent == "greeting" or clean_q in {
+            "hello", "hi", "hey", "hola", "sup", "yo", "namaste", "good morning",
+            "good evening", "good afternoon", "greetings", "wassup", "start", "start chat"
+        } or any(clean_q.startswith(w + " ") for w in ["hello", "hi", "hey", "good morning", "good evening", "good afternoon", "namaste"])
+
+        is_bot_info = conversational_intent == "bot_info" or any(w in query_lower for w in [
+            "who are you", "what are you", "what is your name", "what can you do", "help me",
+            "how does this work", "capabilities", "what do you do", "introduce yourself", "about yourself"
+        ])
+
+        is_smalltalk = conversational_intent == "smalltalk" or any(w in query_lower for w in [
+            "how are you", "how are u", "how do you do", "whats up", "what's up", "how's it going"
+        ])
+
+        is_gratitude = conversational_intent == "gratitude" or any(w in query_lower for w in [
+            "thank you", "thanks", "thx", "thank u", "bye", "goodbye", "cya", "ok", "okay", "got it", "cool", "awesome", "perfect"
+        ])
+
+        if is_greeting:
+            if is_student_user:
+                display_name = "Dhwani (23BCP116)" if "23bcp116" in roll_num.lower() else f"{student_name} ({roll_num})"
+                direct_answer = (
+                    f"Hello {display_name}! Welcome to **PDEU Assistant**. "
+                    f"I have loaded your **{program}** academic profile for **Batch {batch} (Semester {semester})**. "
+                    "How can I assist you with your curriculum, attendance regulations, electives, or campus services today?"
+                )
+                explanation = (
+                    "Here are some popular inquiries for your batch:\n\n"
+                    "• **Course Eligibility**: Ask *'Can I take Machine Learning?'* or check prerequisites for Semester 7.\n"
+                    "• **Attendance Regulations**: Check *REG-ACAD-04* 80% requirement and hackathon concession policies.\n"
+                    "• **Faculty Directory**: Look up professors, cabins, and research profiles (e.g. *Dr. Sidheswar Routray*).\n"
+                    "• **Placement Records**: View highest (₹42 LPA) and average packages for CSE at PDEU.\n\n"
+                    "What would you like to explore?"
+                )
+                related_actions = [
+                    "Can I take Machine Learning?",
+                    "Attendance Regulations",
+                    "B.Tech CSE Curriculum",
+                    "Dr. Sidheswar Routray Details",
+                    "PDEU Placement Packages"
+                ]
+            else:
+                guest_name = student_name if student_name and student_name != "Student" else "there"
+                direct_answer = (
+                    f"Hello {guest_name}! Welcome to **Pandit Deendayal Energy University (PDEU)**. "
+                    "I am **PDEU Assistant**, your official academic & admissions guide. How may I assist you today?"
+                )
+                explanation = (
+                    "I can help you explore everything about joining PDEU Gandhinagar:\n\n"
+                    "• 🎓 **Programs & Degrees**: B.Tech, M.Tech, MBA, and Liberal Studies across 4 schools.\n"
+                    "• 💰 **Tuition & Institutional Fees**: Approved fee structure per semester and caution deposits.\n"
+                    "• 🏠 **Raisan Campus Hostels**: AC & Non-AC room options and annual dining packages.\n"
+                    "• 🎖️ **Merit Scholarships**: Tuition waivers for ACPC and All India JEE Main rankers.\n"
+                    "• 📝 **Admissions 2026-27**: Important dates, eligibility criteria, and seat allocation.\n\n"
+                    "What would you like to know?"
+                )
+                related_actions = [
+                    "PDEU Tuition Fees",
+                    "Raisan Hostel & Mess",
+                    "Merit Scholarships",
+                    "1st Year Syllabus",
+                    "Admissions 2026-27 Process"
+                ]
+
+            return {
+                "status": "ANSWERED",
+                "direct_answer": direct_answer,
+                "explanation": explanation,
+                "user_context": user_context,
+                "citations": [],
+                "graph_traversal": [],
+                "conflicts": [],
+                "related_actions": related_actions
+            }
+
+        if is_bot_info:
+            direct_answer = (
+                "I am **PDEU Assistant**, the official AI academic and admissions assistant for "
+                "**Pandit Deendayal Energy University (PDEU, formerly PDPU)**, Gandhinagar."
+            )
+            explanation = (
+                "I am equipped to provide authoritative, grounded answers on:\n\n"
+                "• 📘 **Academic Curricula & Syllabi**: Semester-wise credit breakdown, course codes, and electives.\n"
+                "• 📋 **University Regulations**: REG-ACAD-04 80% attendance mandate and exam rules.\n"
+                "• 💰 **Fees & Financial Aid**: Tuition fee structures, caution deposits, and merit scholarships.\n"
+                "• 🏠 **Campus Housing**: Hostel accommodation, mess dining plans, and transport on the Raisan campus.\n"
+                "• 👨‍🏫 **Faculty Directory**: Contact info, cabins, and research specializations of PDEU faculty.\n"
+                "• 💼 **Placements**: Recruitment statistics and top visiting corporations (ONGC, Reliance, Amazon).\n\n"
+                "How can I help you today?"
+            )
+            return {
+                "status": "ANSWERED",
+                "direct_answer": direct_answer,
+                "explanation": explanation,
+                "user_context": user_context,
+                "citations": [],
+                "graph_traversal": [],
+                "conflicts": [],
+                "related_actions": [
+                    "PDEU Tuition Fees",
+                    "Raisan Hostel & Mess",
+                    "B.Tech Curriculum 2027",
+                    "Admissions 2026-27 Process"
+                ]
+            }
+
+        if is_smalltalk:
+            direct_answer = (
+                "I'm doing well, thank you for asking! I'm ready to assist you with any questions about "
+                "Pandit Deendayal Energy University. How can I help you today?"
+            )
+            explanation = "You can ask me about admissions, course curricula, fee structures, hostel facilities, or faculty details."
+            return {
+                "status": "ANSWERED",
+                "direct_answer": direct_answer,
+                "explanation": explanation,
+                "user_context": user_context,
+                "citations": [],
+                "graph_traversal": [],
+                "conflicts": [],
+                "related_actions": [
+                    "PDEU Tuition Fees",
+                    "Raisan Hostel & Mess",
+                    "B.Tech Curriculum",
+                    "Admissions 2026-27"
+                ]
+            }
+
+        if is_gratitude:
+            direct_answer = (
+                "You're very welcome! Always happy to assist you. "
+                "Let me know if you need anything else regarding PDEU academics, fees, or campus life!"
+            )
+            explanation = "Feel free to ask any other questions anytime. Have a wonderful day!"
+            return {
+                "status": "ANSWERED",
+                "direct_answer": direct_answer,
+                "explanation": explanation,
+                "user_context": user_context,
+                "citations": [],
+                "graph_traversal": [],
+                "conflicts": [],
+                "related_actions": [
+                    "PDEU Tuition Fees",
+                    "Hostel & Accommodation",
+                    "Merit Scholarships",
+                    "Campus Directory"
+                ]
+            }
 
         # 1. Check for Conflicts
         if conflicts:
@@ -114,9 +272,9 @@ class LLMGateway:
                 ]
             }
 
-        # 2. Check for Insufficient Evidence
+        # 2. Check for Irrelevant Queries
         irrelevant_keywords = ["mess menu", "hostel food", "movie night", "gym timings", "cricket pitch", "weather in gandhinagar", "parking permit"]
-        if any(w in query_lower for w in irrelevant_keywords) or (not retrieved_chunks and not graph_traversals and not course_eligibility):
+        if any(w in query_lower for w in irrelevant_keywords):
             return {
                 "status": "INSUFFICIENT_EVIDENCE",
                 "direct_answer": "I cannot determine the answer from the available PDEU academic knowledge base.",
@@ -439,14 +597,16 @@ class LLMGateway:
         # 4b. Real PDEU Fee Structure Queries (Authoritative FRC & PDEU Academic Records)
         if any(w in query_lower for w in ["fee", "fees", "fee structure", "tuition", "cost", "how much", "charges per sem", "semester fee", "annual fee"]) and not any(w in query_lower for w in ["hostel", "mess"]):
             direct_answer = (
-                "According to official PDEU Academic Regulations and the Fee Regulatory Committee (FRC) guidelines:\n\n"
-                "• **B.Tech (School of Technology & School of Energy Technology)**: Tuition fee is ₹1,25,000 per semester (~₹2,50,000 per academic year) plus ₹13,000 special institutional fees (library, internet, student activities) per semester. Refundable caution deposit is ₹10,000 (one-time paid at admission).\n"
-                "• **M.Tech (Engineering Disciplines)**: Tuition fee is ₹67,500 per semester (~₹1,35,000 per academic year). GATE-qualified students receive a monthly AICTE stipend of ₹12,400.\n"
-                "• **MBA (School of Management - SoM)**: Tuition fee is approximately ₹1,90,000 per term/semester (~₹7,60,000 composite 2-year program tuition).\n"
-                "• **B.A. (Hons.) / B.B.A. (Hons.) / B.Com (Hons.) (School of Liberal Studies - SLS)**: Tuition fee is ₹1,15,000 to ₹1,20,000 per semester.\n"
-                "• **B.Sc. (Hons.) Data Science / Physics / Chemistry**: Tuition fee is ₹60,000 to ₹75,000 per semester.\n"
-                "• **Ph.D. Doctoral Research**: ₹25,000 per semester. Full-time scholars are eligible for PDEU Research Fellowships.\n\n"
-                "All semester fees are payable electronically through the official PDEU ERP portal."
+                "The semester fee structure at Pandit Deendayal Energy University (PDEU) varies by school and program. "
+                "Here are the approved semester tuition fees:\n\n"
+                "🎓 **B.Tech (SoT & SoET)** — ₹1,25,000 / sem (+ ₹13,000 institutional fees)\n"
+                "🎓 **MBA (School of Management)** — ₹1,90,000 / term\n"
+                "🎓 **B.A. / B.B.A. / B.Com (Hons.) (SLS)** — ₹1,15,000 / sem\n"
+                "🎓 **B.Sc. (Hons.) Data Science / Physics** — ₹60,000 to ₹75,000 / sem\n"
+                "🎓 **M.Tech (Engineering Disciplines)** — ₹67,500 / sem (AICTE stipend ₹12,400/mo for GATE scholars)\n"
+                "🎓 **Ph.D. Doctoral Research** — ₹25,000 / sem\n\n"
+                "*Note: A one-time refundable caution deposit of ₹10,000 is payable at the time of admission.*\n\n"
+                "Would you like fee details for a specific program or scholarship options?"
             )
             explanation = (
                 "### 💰 Authoritative PDEU Fee Structure & Regulations\n"
@@ -480,23 +640,23 @@ class LLMGateway:
                 ],
                 "conflicts": [],
                 "related_actions": [
-                    "B.Tech Curriculum 2027",
-                    "Raisan Hostel & Mess",
-                    "ACPC & JEE Scholarships",
-                    "Admission Guidelines"
+                    "B.Tech Programs",
+                    "MBA Programs",
+                    "Merit Scholarships",
+                    "Hostel & Mess Charges"
                 ]
             }
 
         # 4c. Real PDEU Hostel, Accommodation & Mess Queries (Raisan, Gandhinagar Campus)
         if any(w in query_lower for w in ["hostel", "accommodation", "stay", "room", "mess", "food", "boarding", "residence", "dormitory"]):
             direct_answer = (
-                "Official PDEU Residential Campus Housing & Mess Regulations (Knowledge Corridor, Raisan, Gandhinagar):\n\n"
-                "• **3-Seater AC Room**: ₹95,000 per academic year. (Electricity billed on actual sub-meter consumption).\n"
-                "• **3-Seater Non-AC Room**: ₹75,000 per academic year.\n"
-                "• **Hostel Caution Deposit**: ₹5,000 one-time refundable security deposit.\n"
-                "• **Mess & Dining Facility**: ₹46,000 to ₹52,000 per year (compulsory for all hostel residents, managed by professional catering contractors, serving 4 meals daily: Breakfast, Lunch, Evening Snacks, and Dinner).\n"
-                "• **Day Scholars Dining**: Optional lunch-only coupon/pass available at ~₹30,000 per academic year.\n"
-                "• **Campus Amenities**: Biometric access, 24x7 security, high-speed Wi-Fi across hostel blocks, indoor gymnasium, reading rooms, and on-campus primary health centre with resident doctor."
+                "Here are the residential hostel room options and annual charges for students at the Raisan Campus, Gandhinagar:\n\n"
+                "🏠 **3 Seater AC Room** — ₹95,000 / year (electricity billed on actual sub-meter)\n"
+                "🏠 **3 Seater Non-AC Room** — ₹75,000 / year\n"
+                "🏠 **Annual Mess (4 Meals Daily)** — ₹46,000 to ₹52,000 / year (hygienic vegetarian food)\n"
+                "🏠 **Hostel Caution Deposit** — ₹5,000 (one-time refundable)\n\n"
+                "*Note: Mess is compulsory for all hostel residents. High-speed Wi-Fi, biometric security, gym, and 24x7 health center are included.*\n\n"
+                "Would you like to know about transport, mess menus, or specific program fees?"
             )
             explanation = (
                 "### 🏠 Official PDEU Hostel & Residential Facilities (Raisan Campus)\n"
@@ -532,7 +692,7 @@ class LLMGateway:
                 "related_actions": [
                     "Hostel Application Process",
                     "Campus Bus Transport",
-                    "B.Tech Tuition Fees",
+                    "PDEU Tuition Fees",
                     "Anti-Ragging Helpline"
                 ]
             }
@@ -1062,7 +1222,41 @@ class LLMGateway:
             raw_snippet = top_chunk.get("content", "").strip()
             doc_title = top_chunk.get("document_title", "PDEU Official Document")
             sec_title = top_chunk.get("section_title", "General Regulations")
-            
+
+            # Check keyword relevance to avoid returning random documents for unrelated queries
+            query_words = set(re.findall(r"\w+", query_lower)) - {"what", "is", "the", "are", "of", "in", "to", "for", "a", "an", "and", "can", "i", "how", "do", "you", "details", "give", "me", "about", "tell"}
+            snippet_words = set(re.findall(r"\w+", raw_snippet.lower()))
+            overlap = query_words.intersection(snippet_words)
+
+            if not overlap and len(query_words) > 0:
+                # If there is 0 word overlap, do not return random chunk!
+                return {
+                    "status": "INSUFFICIENT_EVIDENCE",
+                    "direct_answer": (
+                        "I couldn't locate specific verified records for that in the official PDEU handbooks.\n\n"
+                        "You can ask me about:\n"
+                        "• **B.Tech, M.Tech, MBA or SLS curricula & courses**\n"
+                        "• **Tuition fees, caution deposits & hostel charges**\n"
+                        "• **ACPC & JEE Main merit scholarships**\n"
+                        "• **Attendance rules (REG-ACAD-04 80% mandate)**\n"
+                        "• **Faculty directory and cabin locations**\n"
+                        "• **Placements and top campus recruiters**\n\n"
+                        "What would you like to explore?"
+                    ),
+                    "explanation": "To ensure 100% accuracy, PDEU Assistant only presents verified university regulations and directories.",
+                    "model_used": "PDEU Grounded NLP Engine",
+                    "user_context": user_context,
+                    "citations": [],
+                    "graph_traversal": [],
+                    "conflicts": [],
+                    "related_actions": [
+                        "PDEU Tuition Fees",
+                        "Raisan Hostel & Mess",
+                        "Merit Scholarships",
+                        "B.Tech CSE Curriculum"
+                    ]
+                }
+
             # Clean boilerplate links, markdown headers, and excess symbols
             clean_snippet = re.sub(r"Click Here for[^\n]+", "", raw_snippet)
             clean_snippet = re.sub(r"\[([^\]]+)\]\([^\)]+\)", r"\1", clean_snippet)
@@ -1075,7 +1269,7 @@ class LLMGateway:
             else:
                 direct_lead = clean_snippet[:220]
 
-            direct_answer = f"According to official PDEU records ({doc_title}): {direct_lead}"
+            direct_answer = f"Here is the official information regarding your query from PDEU records ({doc_title}):\n\n{direct_lead}\n\nWould you like more details on this topic?"
             
             # Format clean bullet points for explanation
             formatted_lines = []
@@ -1098,12 +1292,17 @@ class LLMGateway:
                 "status": "ANSWERED",
                 "direct_answer": direct_answer,
                 "explanation": explanation,
-                "model_used": "Anveshan Grounded Engine",
+                "model_used": "PDEU Grounded Engine",
                 "user_context": user_context,
                 "citations": self._build_citations(retrieved_chunks),
                 "graph_traversal": graph_traversals,
                 "conflicts": [],
-                "related_actions": ["Download Source Document", "View Related Department Page"]
+                "related_actions": [
+                    "PDEU Tuition Fees",
+                    "Raisan Hostel & Mess",
+                    "Merit Scholarships",
+                    "B.Tech CSE Curriculum"
+                ]
             }
 
         # Fallback if nothing matched

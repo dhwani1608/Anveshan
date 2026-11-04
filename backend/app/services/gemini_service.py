@@ -17,8 +17,19 @@ DEFAULT_PDEU_URLS = {
     "doc_pdeu_general_info": "https://pdeu.ac.in/about",
     "doc_pdeu_acad_reg": "https://pdeu.ac.in/regulations/academic-handbook-2026.pdf",
     "doc_pdeu_circular_04": "https://pdeu.ac.in/circulars/2026-04-attendance.pdf",
-    "doc_pdeu_faculty_directory": "https://pdeu.ac.in/faculties-and-staff"
+    "doc_pdeu_faculty_directory": "https://pdeu.ac.in/faculties-and-staff",
+    "doc_pdeu_hostel_facilities": "https://pdeu.ac.in/campus-life"
 }
+
+def is_valid_gemini_key(key: Optional[str]) -> bool:
+    if not key or not isinstance(key, str):
+        return False
+    k = key.strip()
+    if len(k) < 20:
+        return False
+    if k.lower() in ["x", "none", "null", "undefined", "your_gemini_api_key_here"]:
+        return False
+    return True
 
 class GeminiService:
     def __init__(self):
@@ -27,10 +38,10 @@ class GeminiService:
         self.fallback_model = "gemini-1.5-flash"
 
     def get_effective_key(self, runtime_key: Optional[str] = None) -> Optional[str]:
-        if runtime_key and runtime_key.strip():
+        if is_valid_gemini_key(runtime_key):
             return runtime_key.strip()
         env_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY") or settings.GEMINI_API_KEY
-        if env_key and env_key.strip():
+        if is_valid_gemini_key(env_key):
             return env_key.strip()
         return None
 
@@ -46,10 +57,16 @@ class GeminiService:
         """
         Uses Gemini NLP to analyze user prompt intent, correct typos, normalize academic entities,
         and generate positive search terms and negative domain exclusion filters.
+        Falls back to High-Precision Local NLP Engine if Gemini key is missing or calls fail.
         """
+        # First check fast conversational greetings/smalltalk before any remote call
+        local_parsed = self._local_nlp_query_parse(raw_query, user_context)
+        if local_parsed.get("intent") in ["greeting", "bot_info", "smalltalk", "gratitude"]:
+            return local_parsed
+
         key = self.get_effective_key(runtime_key)
         
-        # 1. If Gemini API key is available, use Gemini for NLP Query Analysis
+        # If valid Gemini API key is available, use Gemini for NLP Query Analysis
         if key:
             try:
                 gemini_nlp = await self._gemini_nlp_query_parse(raw_query, user_context, key)
@@ -58,8 +75,8 @@ class GeminiService:
             except Exception as e:
                 print(f"[Gemini NLP] Live query expansion failed ({e}), using local NLP engine.")
 
-        # 2. Local Semantic NLP Query Understanding Engine (Zero-dependency fallback)
-        return self._local_nlp_query_parse(raw_query, user_context)
+        # Zero-dependency local NLP engine fallback
+        return local_parsed
 
     async def _gemini_nlp_query_parse(
         self,
@@ -68,7 +85,7 @@ class GeminiService:
         key: str
     ) -> Optional[Dict[str, Any]]:
         prompt = f"""
-You are the NLP Query Understanding layer for PDEU (Pandit Deendayal Energy University) Anveshan Academic Intelligence.
+You are the NLP Query Understanding layer for PDEU (Pandit Deendayal Energy University) PDEU Assistant.
 Analyze this user query and produce search optimization parameters for accurate knowledge retrieval.
 
 User Query: "{raw_query}"
@@ -80,7 +97,7 @@ Student Context:
 
 Return ONLY a JSON object with keys:
 {{
-  "intent": "faculty_lookup" | "curriculum_lookup" | "placements" | "regulations" | "admissions" | "governance" | "anti_ragging" | "general",
+  "intent": "faculty_lookup" | "curriculum_lookup" | "placements" | "regulations" | "admissions" | "governance" | "anti_ragging" | "fees" | "hostel" | "scholarship" | "general",
   "target_program": "B.Tech Computer Engineering" or specific program,
   "target_year_or_sem": "First Year" | "Second Year" | "Third Year" | "Final Year" | null,
   "expanded_search_query": "natural keywords optimized for dense/sparse retrieval",
@@ -113,13 +130,78 @@ Return ONLY a JSON object with keys:
 
     def _local_nlp_query_parse(self, raw_query: str, user_context: Dict[str, Any]) -> Dict[str, Any]:
         """
-        High-precision local NLP rule-based parser. Corrects typos and tags intent.
+        High-precision local NLP conversational & semantic parser.
+        Corrects typos, classifies intent, and tags target academic entities.
         """
-        q = raw_query.lower()
+        q = raw_query.strip().lower()
+        q_clean = re.sub(r"[^\w\s]", "", q).strip()
         program = user_context.get("program", "B.Tech Computer Engineering")
         batch = user_context.get("batch", "2027")
 
-        # Intent detection
+        # 1. Conversational Greetings & Social Openers
+        greeting_words = {
+            "hello", "hi", "hey", "hola", "sup", "yo", "namaste", "good morning",
+            "good evening", "good afternoon", "greetings", "wassup", "start", "start chat"
+        }
+        is_greeting = q_clean in greeting_words or any(q_clean.startswith(w + " ") for w in ["hello", "hi", "hey", "good morning", "good evening", "good afternoon", "namaste"])
+        if is_greeting:
+            return {
+                "intent": "greeting",
+                "target_program": program,
+                "target_year_or_sem": None,
+                "expanded_search_query": raw_query,
+                "positive_keywords": ["hello", "welcome", "pdeu assistant"],
+                "negative_keywords": [],
+                "preferred_document_ids": [],
+                "source": "conversational-nlp-engine"
+            }
+
+        # 2. Bot Identity & Capabilities
+        is_bot_info = any(w in q for w in [
+            "who are you", "what are you", "what is your name", "what can you do", "help me",
+            "how does this work", "capabilities", "what do you do", "introduce yourself", "about yourself"
+        ])
+        if is_bot_info:
+            return {
+                "intent": "bot_info",
+                "target_program": program,
+                "target_year_or_sem": None,
+                "expanded_search_query": raw_query,
+                "positive_keywords": ["pdeu assistant", "capabilities"],
+                "negative_keywords": [],
+                "preferred_document_ids": [],
+                "source": "conversational-nlp-engine"
+            }
+
+        # 3. Conversational Smalltalk
+        is_smalltalk = any(w in q for w in ["how are you", "how are u", "how do you do", "whats up", "what's up", "how's it going"])
+        if is_smalltalk:
+            return {
+                "intent": "smalltalk",
+                "target_program": program,
+                "target_year_or_sem": None,
+                "expanded_search_query": raw_query,
+                "positive_keywords": ["fine", "ready to help"],
+                "negative_keywords": [],
+                "preferred_document_ids": [],
+                "source": "conversational-nlp-engine"
+            }
+
+        # 4. Gratitude & Closing
+        is_gratitude = any(w in q for w in ["thank you", "thanks", "thx", "thank u", "bye", "goodbye", "cya", "ok", "okay", "got it", "cool", "awesome", "perfect"])
+        if is_gratitude:
+            return {
+                "intent": "gratitude",
+                "target_program": program,
+                "target_year_or_sem": None,
+                "expanded_search_query": raw_query,
+                "positive_keywords": ["welcome"],
+                "negative_keywords": [],
+                "preferred_document_ids": [],
+                "source": "conversational-nlp-engine"
+            }
+
+        # 5. University Domain Intents
         is_faculty = any(w in q for w in [
             "professor", "proffesor", "prof", "faculty", "teacher", "dr.", "dr ", "hod", "head of department",
             "routray", "siddheswar", "sidheshwar", "sidheswar", "shakti mishra", "nishant doshi",
@@ -129,7 +211,10 @@ Return ONLY a JSON object with keys:
         is_curriculum = any(w in q for w in ["course", "curriculum", "syllabus", "subject", "credit", "sem", "semester", "first year", "second year", "1st year", "2nd year", "prerequisite", "elective"])
         is_attendance = any(w in q for w in ["attendance", "concession", "hackathon", "absent", "medical", "debarred", "condone", "relaxation", "80%", "75%"])
         is_governance = any(w in q for w in ["president", "chancellor", "ambani", "adhia", "director general", "governance", "act", "statutory", "board of governors", "bog"])
-        is_admissions = any(w in q for w in ["admission", "acpc", "jee", "gujcet", "cutoff", "quota", "seat", "fees", "eligibility"])
+        is_fees = any(w in q for w in ["fee", "fees", "tuition", "cost", "how much", "charges per sem", "semester fee", "annual fee"]) and not any(w in q for w in ["hostel", "mess"])
+        is_hostel = any(w in q for w in ["hostel", "accommodation", "stay", "room", "mess", "food", "boarding", "residence", "dormitory"])
+        is_scholarship = any(w in q for w in ["scholarship", "financial aid", "waiver", "freeship", "merit scholarship", "stipend"])
+        is_admissions = any(w in q for w in ["admission", "acpc", "jee", "gujcet", "cutoff", "quota", "seat", "eligibility"])
         is_anti_ragging = any(w in q for w in ["ragging", "harassment", "helpline", "complaint", "anti-ragging"])
 
         intent = "general"
@@ -163,6 +248,26 @@ Return ONLY a JSON object with keys:
                 positive_keywords = ["PDEU Faculty", "School of Technology", "Computer Science and Engineering", "Professor"]
                 expanded_query = f"PDEU Faculty Directory School of Technology Computer Science Engineering {raw_query}"
 
+        elif is_fees:
+            intent = "fees"
+            positive_keywords = ["B.Tech Tuition 125000", "Institutional Fee 13000", "Caution Deposit 10000", "MBA Tuition 190000", "M.Tech Tuition 67500"]
+            negative_keywords = ["hostel", "mess", "food", "dormitory", "attendance"]
+            preferred_doc_ids = ["doc_pdeu_academic_programs"]
+            expanded_query = "PDEU approved fee structure B.Tech M.Tech MBA tuition semester charges caution deposit"
+
+        elif is_hostel:
+            intent = "hostel"
+            positive_keywords = ["Hostel 3 Seater AC 95000", "3 Seater Non-AC 75000", "Mess 46000 52000", "Raisan Campus", "Caution Deposit 5000"]
+            negative_keywords = ["placement", "salary", "package"]
+            preferred_doc_ids = ["doc_pdeu_hostel_facilities"]
+            expanded_query = "PDEU Raisan campus hostel accommodation room charges 3 seater AC Non-AC annual mess fee"
+
+        elif is_scholarship:
+            intent = "scholarship"
+            positive_keywords = ["Merit Scholarship", "100% Tuition Waiver ACPC", "JEE Main All India Rank", "GATE Stipend 12400", "Ph.D. Fellowship"]
+            preferred_doc_ids = ["doc_pdeu_academic_programs", "doc_pdeu_admissions"]
+            expanded_query = "PDEU merit scholarships tuition fee waiver ACPC rank JEE Main rank GATE AICTE stipend"
+
         elif is_placement:
             intent = "placements"
             positive_keywords = ["placement", "highest package", "average package", "42 LPA", "8.5 LPA", "recruiters", "ONGC", "Reliance", "Amazon"]
@@ -172,7 +277,6 @@ Return ONLY a JSON object with keys:
 
         elif is_curriculum:
             intent = "curriculum_lookup"
-            # Detect year / semester
             if any(w in q for w in ["first year", "1st year", "freshman", "sem 1", "sem 2", "semester 1", "semester 2", "sem i", "sem ii"]):
                 target_year_or_sem = "First Year"
                 positive_keywords = ["Semester I", "Semester II", "Computer Programming", "Mathematics - I", "Applied Physics", "Engineering Graphics", "Engineering Chemistry", "BEE", "20 Credits"]
@@ -185,7 +289,6 @@ Return ONLY a JSON object with keys:
                 positive_keywords = ["B.Tech Computer Engineering", "Curriculum", "Course Structure", "Credit Breakdown", "Batch 2027"]
                 expanded_query = f"{program} Curriculum Course Structure Credit Breakdown Syllabus"
 
-            # Filter out cross-domain unrelated branches
             if "cse" in q or "computer" in q or "ce" in q or "bcp" in q or "bcs" in q or "b.tech" in program.lower():
                 negative_keywords = ["solar", "m.tech", "petroleum", "chemical", "energy systems", "mba", "liberal studies", "bba"]
 
@@ -243,7 +346,7 @@ Return ONLY a JSON object with keys:
     ) -> Optional[Dict[str, Any]]:
         """
         Uses Gemini API (gemini-2.0-flash / gemini-1.5-flash) to synthesize a direct, highly grounded,
-        well-structured response citing official PDEU handbooks and policies.
+        conversational response modeled after natural university assistants.
         """
         key = self.get_effective_key(runtime_key)
         if not key:
@@ -263,21 +366,19 @@ Return ONLY a JSON object with keys:
         evidence_text = "\n\n".join(evidence_snippets)
 
         system_prompt = """
-You are ANVESHAN, the authoritative official Academic Intelligence & Decision Reasoning Agent for Pandit Deendayal Energy University (PDEU, formerly PDPU), Gandhinagar.
+You are PDEU Assistant, the official AI academic & admissions assistant for Pandit Deendayal Energy University (PDEU, formerly PDPU), Gandhinagar.
 
-Your mission is to provide accurate, articulate, helpful, and completely grounded answers to student and faculty inquiries based strictly on official PDEU handbooks, curricula, circulars, and statutes.
+COMMUNICATION STYLE REQUIREMENTS (modeled like a high-end university assistant):
+1. NATURAL & CONVERSATIONAL: Never output robotic raw citations or "According to official PDEU records...". Talk like a helpful, friendly academic counselor.
+2. CLEAN FORMATTING: Use bold text, bullet points with relevant emojis (🎓 for degrees/programs, 💰 for fees, 🏠 for hostels, 🎖️ for scholarships, 💼 for placements, 👨‍🏫 for faculty, 📋 for rules).
+3. FOLLOW-UP PROMPT: Conclude your direct answer with a polite, natural follow-up question (e.g. "Would you like fee details for a specific program?" or "Would you like to know about hostel accommodations?").
+4. SUGGESTIONS: In "related_actions", provide 3 to 4 concise quick-reply buttons (e.g. ["B.Tech Programs", "Hostel & Mess", "Merit Scholarships"]).
+5. FACTUAL GROUNDING: Rely strictly on provided evidence or student context. Never hallucinate.
 
-STRICT INSTRUCTIONS:
-1. DIRECT ANSWER: Provide a clear, direct, and unambiguous answer in the first 1-2 sentences. Avoid robotic phrasing like "According to official PDEU records... Click Here for...".
-2. EXPLANATION: Provide an articulate, structured academic explanation using GitHub Flavored Markdown (bullet points, bold highlights, sub-headers ###, course codes, and credit hours where applicable).
-3. NO HALLUCINATION: Only state facts corroborated by the provided evidence chunks or student context.
-4. CITATIONS: Extract authoritative citations for every factual statement with exact document titles and page numbers.
-5. CONFLICTS: If the query involves a contradiction between a general policy and a newer circular (e.g. 80% vs 75% for hackathons), explicitly highlight both regulations.
-
-You must respond with ONLY a valid JSON object matching this schema:
+Return ONLY a valid JSON object matching this schema:
 {
   "status": "ANSWERED" | "CONFLICT_DETECTED" | "INSUFFICIENT_EVIDENCE",
-  "direct_answer": "Crisp 1-2 sentence direct answer",
+  "direct_answer": "Clean, conversational answer with emojis and follow-up question",
   "explanation": "Structured detailed academic breakdown with markdown",
   "model_used": "Gemini 2.0 Flash Grounded",
   "citations": [
@@ -297,70 +398,39 @@ You must respond with ONLY a valid JSON object matching this schema:
     {"source": "Subject", "relation": "PREDICATE", "target": "Object"}
   ],
   "conflicts": [],
-  "related_actions": ["Download Source PDF", "Action 2"]
+  "related_actions": ["Quick Action 1", "Quick Action 2", "Quick Action 3"]
 }
 """
-
         user_prompt = f"""
-Student Profile Context:
-- Student: {user_context.get('student_name', 'Student')}
-- Program: {user_context.get('program', 'B.Tech Computer Engineering')}
-- Enrolled Cohort / Batch: {user_context.get('batch', '2027')}
-- Current Semester: {user_context.get('semester', 7)}
-- Completed Courses: {user_context.get('completed_courses', [])}
+Query: {query}
+Student / User Context:
+{json.dumps(user_context, indent=2)}
 
-User Question: "{query}"
-
-Official PDEU Evidence Chunks:
-{evidence_text}
-
-Conflict Detections: {json.dumps(conflicts)}
-Course Eligibility: {json.dumps(course_eligibility or {})}
-
-Formulate the official response as structured JSON:
+Retrieved Official Evidence:
+{evidence_text if evidence_text else "Conversational query or general university knowledge"}
 """
 
-        models = [self.primary_model, self.fallback_model]
-        async with httpx.AsyncClient(timeout=18.0) as client:
-            for model in models:
+        models_to_try = [self.primary_model, self.fallback_model]
+        async with httpx.AsyncClient(timeout=12.0) as client:
+            for model in models_to_try:
                 url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
                 try:
                     resp = await client.post(
                         url,
                         json={
-                            "system_instruction": {"parts": [{"text": system_prompt}]},
-                            "contents": [{"parts": [{"text": user_prompt}]}],
-                            "generationConfig": {
-                                "responseMimeType": "application/json",
-                                "temperature": 0.2
-                            }
+                            "contents": [{"parts": [{"text": f"{system_prompt}\n\n{user_prompt}"}]}],
+                            "generationConfig": {"responseMimeType": "application/json"}
                         }
                     )
                     if resp.status_code == 200:
                         data = resp.json()
-                        parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])
-                        if parts:
-                            raw_text = parts[0].get("text", "").strip()
-                            # Clean possible markdown fences
-                            if raw_text.startswith("```json"):
-                                raw_text = raw_text[7:]
-                            if raw_text.endswith("```"):
-                                raw_text = raw_text[:-3]
-                            parsed = json.loads(raw_text.strip())
-                            parsed["model_used"] = f"Gemini ({model})"
-                            parsed["user_context"] = user_context
-
-                            # Ensure URLs in citations
-                            for c in parsed.get("citations", []):
-                                doc_id = c.get("document_id", "")
-                                if not c.get("source_url") or c.get("source_url") == "https://pdeu.ac.in":
-                                    c["source_url"] = DEFAULT_PDEU_URLS.get(doc_id, "https://pdeu.ac.in")
-
-                            return parsed
+                        text = data["candidates"][0]["content"]["parts"][0]["text"]
+                        parsed = json.loads(text)
+                        parsed["model_used"] = f"Gemini ({model})"
+                        return parsed
                 except Exception as e:
-                    print(f"[Gemini Service] Model {model} call failed: {e}")
+                    print(f"[Gemini Service] Model {model} call error: {e}")
                     continue
-
         return None
 
 gemini_service = GeminiService()

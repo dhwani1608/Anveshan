@@ -44,6 +44,25 @@ class RAGEngine:
             user_context=context_payload,
             runtime_key=gemini_api_key
         )
+
+        # Conversational Fast-Path: greetings, bot identity, gratitude, smalltalk
+        if nlp_intent.get("intent") in ["greeting", "bot_info", "smalltalk", "gratitude"]:
+            response = await llm_gateway.generate_grounded_answer(
+                query=question,
+                retrieved_chunks=[],
+                graph_traversals=[],
+                user_context=context_payload,
+                conflicts=[],
+                course_eligibility=None,
+                runtime_key=gemini_api_key,
+                conversational_intent=nlp_intent.get("intent")
+            )
+            elapsed_ms = round((time.time() - start_time) * 1000, 2)
+            response["latency_ms"] = elapsed_ms
+            response["nlp_intent"] = nlp_intent.get("intent")
+            response["nlp_source"] = nlp_intent.get("source", "conversational-nlp-engine")
+            return response
+
         expanded_search_query = nlp_intent.get("expanded_search_query", question)
 
         # 3. Hybrid Retrieval: Vector Search (Dense)
