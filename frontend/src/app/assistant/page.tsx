@@ -73,8 +73,10 @@ function AssistantContent() {
 
       {/* Main Content Area */}
       {activeTab === 'chat' ? (
-        <div className="flex-1 flex flex-col">
-          <AssistantChat initialSuggested={suggested} />
+        <div className="flex-1 flex flex-col items-center justify-center py-2">
+          <div className="w-full max-w-lg h-[620px] max-h-[82vh] rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col bg-white">
+            <AssistantChat initialSuggested={suggested} />
+          </div>
         </div>
       ) : (
         <div className="flex-1 space-y-4">
