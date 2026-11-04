@@ -28,6 +28,38 @@ class LLMGateway:
         self.gemini_key = settings.GEMINI_API_KEY
         self.openai_key = settings.OPENAI_API_KEY
 
+    def _ensure_contact_if_insufficient(self, result: Dict[str, Any]) -> Dict[str, Any]:
+        if not result or not isinstance(result, dict):
+            return result
+        status = result.get("status", "")
+        direct_ans = result.get("direct_answer", "")
+
+        is_unavailable = (
+            status == "INSUFFICIENT_EVIDENCE" or
+            "not available" in direct_ans.lower() or
+            "cannot determine" in direct_ans.lower() or
+            "couldn't locate" in direct_ans.lower() or
+            "could not locate" in direct_ans.lower() or
+            "not found" in direct_ans.lower()
+        )
+
+        if is_unavailable and "+91 79 2327 5060" not in direct_ans:
+            result["direct_answer"] = (
+                f"{direct_ans}\n\n"
+                "📞 **Official PDEU Contact Details**:\n"
+                "• **General Reception / EPABX**: +91 79 2327 5060 / +91 79 2327 5000\n"
+                "• **Admissions Helpline**: +91 79 2327 5098 / +91 79 2327 5077\n"
+                "• **Administrative Helpdesk**: +91 79 2327 5006\n"
+                "• **Email**: info@pdeu.ac.in\n"
+                "• **Campus**: Knowledge Corridor, Raisan Village, Gandhinagar - 382426"
+            ).strip()
+
+            actions = result.get("related_actions", [])
+            if not any("5060" in a for a in actions):
+                result["related_actions"] = ["Call PDEU Reception (+91 79 2327 5060)"] + [a for a in actions if "Call" not in a][:3]
+
+        return result
+
     async def generate_grounded_answer(
         self,
         query: str,
@@ -56,7 +88,7 @@ class LLMGateway:
                     runtime_key=runtime_key
                 )
                 if result and result.get("direct_answer"):
-                    return result
+                    return self._ensure_contact_if_insufficient(result)
             except Exception as e:
                 print(f"[LLM Gateway] Gemini API call failed, falling back to Grounded Engine: {e}")
 
@@ -65,12 +97,13 @@ class LLMGateway:
             try:
                 result = await self._call_openai(query, retrieved_chunks, graph_traversals, user_context, conflicts, course_eligibility)
                 if result:
-                    return result
+                    return self._ensure_contact_if_insufficient(result)
             except Exception as e:
                 print(f"[LLM Gateway] OpenAI API call failed, falling back to Grounded Engine: {e}")
 
         # 3. Default: Grounded Local Reasoning Engine (Fast, deterministic, guaranteed 0 hallucinations)
-        return self._local_grounded_reasoner(query, retrieved_chunks, graph_traversals, user_context, conflicts, course_eligibility, conversational_intent)
+        local_result = self._local_grounded_reasoner(query, retrieved_chunks, graph_traversals, user_context, conflicts, course_eligibility, conversational_intent)
+        return self._ensure_contact_if_insufficient(local_result)
 
     def _local_grounded_reasoner(
         self,
@@ -114,27 +147,57 @@ class LLMGateway:
 
         if is_greeting:
             if is_student_user:
+                # Check if batch is passed out (graduation year <= 2026)
+                is_passed_out = False
+                try:
+                    if batch and str(batch).isdigit() and int(batch) <= 2026:
+                        is_passed_out = True
+                except Exception:
+                    pass
+
                 display_name = "Dhwani (23BCP116)" if "23bcp116" in roll_num.lower() else f"{student_name} ({roll_num})"
-                direct_answer = (
-                    f"Hello {display_name}! Welcome to **PDEU Assistant**. "
-                    f"I have loaded your **{program}** academic profile for **Batch {batch} (Semester {semester})**. "
-                    "How can I assist you with your curriculum, attendance regulations, electives, or campus services today?"
-                )
-                explanation = (
-                    "Here are some popular inquiries for your batch:\n\n"
-                    "• **Course Eligibility**: Ask *'Can I take Machine Learning?'* or check prerequisites for Semester 7.\n"
-                    "• **Attendance Regulations**: Check *REG-ACAD-04* 80% requirement and hackathon concession policies.\n"
-                    "• **Faculty Directory**: Look up professors, cabins, and research profiles (e.g. *Dr. Sidheswar Routray*).\n"
-                    "• **Placement Records**: View highest (₹42 LPA) and average packages for CSE at PDEU.\n\n"
-                    "What would you like to explore?"
-                )
-                related_actions = [
-                    "Can I take Machine Learning?",
-                    "Attendance Regulations",
-                    "B.Tech CSE Curriculum",
-                    "Dr. Sidheswar Routray Details",
-                    "PDEU Placement Packages"
-                ]
+                if is_passed_out:
+                    direct_answer = (
+                        f"Hello {display_name}! Welcome to **PDEU Assistant**. "
+                        f"I have loaded your **{program}** profile for **Batch {batch} (Passed out / Alumni)**. "
+                        "How can I assist you with official transcripts, degree verification, migration certificates, or alumni records today?"
+                    )
+                    explanation = (
+                        "Here are key services available for PDEU alumni:\n\n"
+                        "• 📜 **Official Transcripts**: Apply for sealed official grade transcripts for higher studies (WES, US/UK/Canada universities).\n"
+                        "• 🎓 **Degree Certificate & Verification**: Procedures for duplicate degree certificates, name corrections, and third-party credential verification.\n"
+                        "• 📄 **Migration Certificate**: Application protocol through the PDEU Registrar's Office.\n"
+                        "• 🌐 **PDEU Alumni Association**: Access alumni networking events, mentorship programs, and library access.\n"
+                        "• 💼 **Placement Records**: Past recruitment statistics and career support services.\n\n"
+                        "What would you like assistance with?"
+                    )
+                    related_actions = [
+                        "Request Official Transcripts",
+                        "Degree Certificate Verification",
+                        "Migration Certificate Process",
+                        "PDEU Alumni Association Portal"
+                    ]
+                else:
+                    direct_answer = (
+                        f"Hello {display_name}! Welcome to **PDEU Assistant**. "
+                        f"I have loaded your **{program}** academic profile for **Batch {batch} (Semester {semester})**. "
+                        "How can I assist you with your curriculum, attendance regulations, electives, or campus services today?"
+                    )
+                    explanation = (
+                        "Here are some popular inquiries for your batch:\n\n"
+                        "• **Course Eligibility**: Ask *'Can I take Machine Learning?'* or check prerequisites for Semester 7.\n"
+                        "• **Attendance Regulations**: Check *REG-ACAD-04* 80% requirement and hackathon concession policies.\n"
+                        "• **Faculty Directory**: Look up professors, cabins, and research profiles (e.g. *Dr. Sidheswar Routray*).\n"
+                        "• **Placement Records**: View highest (₹42 LPA) and average packages for CSE at PDEU.\n\n"
+                        "What would you like to explore?"
+                    )
+                    related_actions = [
+                        "Can I take Machine Learning?",
+                        "Attendance Regulations",
+                        "B.Tech CSE Curriculum",
+                        "Dr. Sidheswar Routray Details",
+                        "PDEU Placement Packages"
+                    ]
             else:
                 guest_name = student_name if student_name and student_name != "Student" else "there"
                 direct_answer = (
@@ -272,24 +335,132 @@ class LLMGateway:
                 ]
             }
 
-        # 2. Check for Irrelevant Queries
+        # 1b. Alumni Services, Official Transcripts & Degree Verification
+        if any(w in query_lower for w in ["transcript", "degree certificate", "migration certificate", "duplicate degree", "alumni", "passed out", "wes"]):
+            if "transcript" in query_lower:
+                direct_answer = (
+                    "Official Transcripts at PDEU are issued through the **Office of the Controller of Examinations (CoE)** "
+                    "with sealed envelopes for WES, international universities, or employer background screening."
+                )
+                explanation = (
+                    "Official PDEU Transcript Issuance Guidelines:\n\n"
+                    "• **Application Portal**: Submit your request via the PDEU Examination Portal or in-person at the CoE counter, Block D.\n"
+                    "• **Required Documents**: Copies of all semester grade cards (Sem 1 to 8), PDEU student ID / roll number, and government photo ID.\n"
+                    "• **Official Processing Time**: 7 to 10 working days from receipt of online payment acknowledgment.\n"
+                    "• **Standard Fee**: ₹500 for the first set, ₹200 for each additional attested set.\n"
+                    "• **Postal / Electronic Dispatch**: Sealed official envelopes can be sent directly to WES or international university admissions offices.\n\n"
+                    "For express queries, contact: **exam.cell@pdpu.ac.in** or visit Controller of Examinations, Ground Floor, Block-D."
+                )
+                related_actions = [
+                    "Degree Certificate Verification",
+                    "Migration Certificate Process",
+                    "PDEU Alumni Association Portal",
+                    "Contact Examination Cell"
+                ]
+            elif "migration" in query_lower:
+                direct_answer = (
+                    "Migration Certificates are issued by the **Registrar's Office, PDEU** "
+                    "upon submission of university No-Dues Clearance and original degree completion records."
+                )
+                explanation = (
+                    "PDEU Migration Certificate Procedure:\n\n"
+                    "• **Eligibility**: Graduated students with all financial and departmental dues cleared (Library, Hostel, Laboratory, Sports).\n"
+                    "• **Processing Fee**: ₹300 payable online via PDEU payment gateway.\n"
+                    "• **Processing Timeline**: 5 working days from approval of clearance.\n"
+                    "• **Point of Contact**: Academic Affairs & Registrar Office, Admin Block, PDEU Campus, Gandhinagar."
+                )
+                related_actions = [
+                    "Request Official Transcripts",
+                    "Degree Certificate Verification",
+                    "PDEU Alumni Association Portal"
+                ]
+            elif "degree" in query_lower or "verification" in query_lower:
+                direct_answer = (
+                    "Degree Certificates are conferred at the annual PDEU Convocation. "
+                    "Background verification agencies and alumni can verify credentials through the **PDEU Academic Verification Cell**."
+                )
+                explanation = (
+                    "Degree Verification & Duplicate Certificate Rules:\n\n"
+                    "• **Third-Party Background Verification**: Employers and screening agencies should email candidate roll number and degree scan to **verification@pdpu.ac.in**.\n"
+                    "• **Duplicate Degree Certificate**: In case of loss or damage, apply with an official FIR copy, affidavit attested by a Notary Public, and fee of ₹2,500.\n"
+                    "• **Convocation Inquiries**: Visit the official convocation portal on **pdeu.ac.in** for degree collection schedules."
+                )
+                related_actions = [
+                    "Request Official Transcripts",
+                    "Migration Certificate Process",
+                    "PDEU Alumni Association Portal"
+                ]
+            else:
+                direct_answer = (
+                    "The **PDEU Alumni Association** connects over 15,000+ graduates globally "
+                    "across engineering, management, and liberal studies disciplines."
+                )
+                explanation = (
+                    "PDEU Alumni Association Services & Benefits:\n\n"
+                    "• **Official Alumni Portal**: Register at **alumni.pdeu.ac.in** with your PDEU Roll Number.\n"
+                    "• **Campus Privileges**: Access PDEU Central Library, campus incubation (PDEU IIC), and alumni guest lectures.\n"
+                    "• **Mentorship**: Connect with current undergrads for mentorship, campus recruitments, and industrial visits.\n"
+                    "• **Chapters**: Active chapters in Gandhinagar, Ahmedabad, Mumbai, Bengaluru, Delhi, Houston (USA), and London (UK)."
+                )
+                related_actions = [
+                    "Request Official Transcripts",
+                    "Degree Certificate Verification",
+                    "PDEU Placement Packages"
+                ]
+
+            return {
+                "status": "ANSWERED",
+                "direct_answer": direct_answer,
+                "explanation": explanation,
+                "user_context": user_context,
+                "citations": [
+                    {
+                        "document_id": "doc_pdeu_acad_reg",
+                        "document_title": "PDEU Academic Regulations & Examination Code",
+                        "page_number": 42,
+                        "source_type": "PDF",
+                        "text": "The Controller of Examinations shall issue transcripts, grade cards, and degree verification records upon clearance of university dues.",
+                        "confidence_score": 0.98,
+                        "temporal_validity": "2026-2027",
+                        "school": "Academic Affairs",
+                        "effective_term": "Annual Academic Cycle"
+                    }
+                ],
+                "graph_traversal": [
+                    {"source": f"Batch {batch}", "relation": "STATUS", "target": "Passed Out (Alumni)"},
+                    {"source": "PDEU Alumni", "relation": "ADMINISTERED_BY", "target": "Controller of Examinations & Registrar Office"}
+                ],
+                "conflicts": [],
+                "related_actions": related_actions
+            }
+
+        # 2. Check for Irrelevant or Unavailable Queries
         irrelevant_keywords = ["mess menu", "hostel food", "movie night", "gym timings", "cricket pitch", "weather in gandhinagar", "parking permit"]
         if any(w in query_lower for w in irrelevant_keywords):
             return {
                 "status": "INSUFFICIENT_EVIDENCE",
-                "direct_answer": "I cannot determine the answer from the available PDEU academic knowledge base.",
+                "direct_answer": (
+                    "Relevant information for this specific query is not available in the official PDEU academic knowledge base.\n\n"
+                    "📞 **For assistance, please contact PDEU**:\n"
+                    "• **General Reception / EPABX**: +91 79 2327 5060 / +91 79 2327 5000\n"
+                    "• **Admissions Helpline**: +91 79 2327 5098 / +91 79 2327 5077\n"
+                    "• **Administrative Helpdesk**: +91 79 2327 5006\n"
+                    "• **Email**: info@pdeu.ac.in\n"
+                    "• **Campus**: Knowledge Corridor, Raisan Village, Gandhinagar - 382426"
+                ),
                 "explanation": (
-                    "Anveshan prioritizes verified, grounded information over speculation. "
+                    "PDEU Assistant prioritizes verified, grounded information over speculation. "
                     "The current ingested documents (curricula, academic regulations, exam codes, and departmental circulars) "
-                    "provide insufficient evidence or authoritative records regarding this specific query."
+                    "do not contain authoritative records for this query. You may contact the university administrative desk directly using the numbers above."
                 ),
                 "user_context": user_context,
                 "citations": [],
                 "graph_traversal": [],
                 "conflicts": [],
                 "related_actions": [
-                    "Search PDEU Official Website",
-                    "Browse CSE Department Documents",
+                    "Call PDEU Reception (+91 79 2327 5060)",
+                    "PDEU Tuition Fees",
+                    "Raisan Hostel & Mess",
                     "Contact Department Administration"
                 ]
             }
@@ -969,11 +1140,21 @@ class LLMGateway:
                 ]
             }
 
-        # 9. Real PDEU Campus & Location Queries
-        if any(w in query_lower for w in ["campus", "address", "location", "gandhinagar", "contact", "phone", "reception"]):
+        # 9. Real PDEU Campus, Phone & Contact Queries
+        if any(w in query_lower for w in ["campus", "address", "location", "gandhinagar", "contact", "phone", "reception", "call"]):
             direct_answer = (
-                "PDEU is located at Knowledge Corridor, Raisan Village, Gandhinagar - 382426, Gujarat, India. "
-                "Phone: +91 79 2327 5060 / 5000."
+                "Pandit Deendayal Energy University (PDEU) Gandhinagar Contact Information:\n\n"
+                "📞 **Official Telephone Numbers**:\n"
+                "• **Central EPABX / Reception**: +91 79 2327 5060 / +91 79 2327 5000\n"
+                "• **B.Tech Admissions**: +91 79 2327 5098 / +91 79 2327 5077\n"
+                "• **Academic Affairs / Registrar**: +91 79 2327 5006\n"
+                "• **Examination Cell (CoE)**: +91 79 2327 5035\n"
+                "• **Hostel Administration**: +91 79 2327 5055\n\n"
+                "📧 **Official Email Addresses**:\n"
+                "• **General Inquiries**: info@pdeu.ac.in\n"
+                "• **Admissions**: btechadmission@pdeu.ac.in\n\n"
+                "📍 **Campus Address**:\n"
+                "Knowledge Corridor, Raisan Village, Gandhinagar - 382426, Gujarat, India."
             )
             explanation = (
                 "PDEU Campus Infrastructure & Access:\n"
@@ -1178,7 +1359,14 @@ class LLMGateway:
                 # Faculty query but not found in directory -> Explicitly state NOT FOUND rather than guessing random degrees
                 return {
                     "status": "INSUFFICIENT_EVIDENCE",
-                    "direct_answer": "The requested professor or faculty profile was not found in the verified PDEU faculty directory.",
+                    "direct_answer": (
+                        "The requested professor or faculty profile was not found in the verified PDEU faculty directory.\n\n"
+                        "📞 **For department & faculty inquiries, please contact PDEU**:\n"
+                        "• **Campus Reception / EPABX**: +91 79 2327 5060 / +91 79 2327 5000\n"
+                        "• **Academic Affairs / HoD Office**: +91 79 2327 5006\n"
+                        "• **Email**: info@pdeu.ac.in\n"
+                        "• **Official Directory**: [pdeu.ac.in/faculties-and-staff](https://pdeu.ac.in/faculties-and-staff)"
+                    ),
                     "explanation": (
                         "Anveshan verified the official PDEU Faculty and Academic Staff records but could not locate "
                         "a confirmed faculty entry matching this name. Please verify the spelling or check the "
@@ -1203,6 +1391,7 @@ class LLMGateway:
                     ],
                     "conflicts": [],
                     "related_actions": [
+                        "Call PDEU Reception (+91 79 2327 5060)",
                         "Search PDEU Faculty Directory",
                         "Contact CSE Department Office",
                         "Browse School of Technology Portal"
@@ -1233,27 +1422,36 @@ class LLMGateway:
                 return {
                     "status": "INSUFFICIENT_EVIDENCE",
                     "direct_answer": (
-                        "I couldn't locate specific verified records for that in the official PDEU handbooks.\n\n"
-                        "You can ask me about:\n"
+                        "Relevant verified information for your query could not be located in official PDEU handbooks.\n\n"
+                        "📞 **Official PDEU Contact Numbers**:\n"
+                        "• **General Reception / EPABX**: +91 79 2327 5060 / +91 79 2327 5000\n"
+                        "• **Admissions Helpline**: +91 79 2327 5098 / +91 79 2327 5077\n"
+                        "• **Administrative Helpdesk**: +91 79 2327 5006\n"
+                        "• **Email**: info@pdeu.ac.in | btechadmission@pdeu.ac.in\n"
+                        "• **Campus**: Knowledge Corridor, Raisan, Gandhinagar - 382426\n\n"
+                        "You can also ask me about:\n"
                         "• **B.Tech, M.Tech, MBA or SLS curricula & courses**\n"
                         "• **Tuition fees, caution deposits & hostel charges**\n"
                         "• **ACPC & JEE Main merit scholarships**\n"
                         "• **Attendance rules (REG-ACAD-04 80% mandate)**\n"
                         "• **Faculty directory and cabin locations**\n"
                         "• **Placements and top campus recruiters**\n\n"
-                        "What would you like to explore?"
+                        "Would you like details on any of these topics?"
                     ),
-                    "explanation": "To ensure 100% accuracy, PDEU Assistant only presents verified university regulations and directories.",
+                    "explanation": (
+                        "To ensure 100% accuracy, PDEU Assistant only presents verified university regulations and directories. "
+                        "If you need immediate assistance on non-curriculum matters, please contact PDEU reception at +91 79 2327 5060."
+                    ),
                     "model_used": "PDEU Grounded NLP Engine",
                     "user_context": user_context,
                     "citations": [],
                     "graph_traversal": [],
                     "conflicts": [],
                     "related_actions": [
+                        "Call PDEU Reception (+91 79 2327 5060)",
                         "PDEU Tuition Fees",
                         "Raisan Hostel & Mess",
-                        "Merit Scholarships",
-                        "B.Tech CSE Curriculum"
+                        "Merit Scholarships"
                     ]
                 }
 
@@ -1307,14 +1505,25 @@ class LLMGateway:
 
         # Fallback if nothing matched
         return {
-            "status": "PARTIALLY_ANSWERED",
-            "direct_answer": "Relevant academic information was located, but further administrative details may be needed.",
-            "explanation": "Please consult your faculty advisor or the CSE department coordinator for clarification on this topic.",
+            "status": "INSUFFICIENT_EVIDENCE",
+            "direct_answer": (
+                "Relevant academic records for this query are not available in the verified PDEU knowledge base.\n\n"
+                "📞 **For official assistance, please contact PDEU**:\n"
+                "• **Reception / EPABX**: +91 79 2327 5060 / +91 79 2327 5000\n"
+                "• **Admissions Helpline**: +91 79 2327 5098 / +91 79 2327 5077\n"
+                "• **Email**: info@pdeu.ac.in\n"
+                "• **Campus**: Knowledge Corridor, Raisan Village, Gandhinagar - 382426"
+            ),
+            "explanation": "Please consult your faculty advisor or contact PDEU central reception at +91 79 2327 5060 for official assistance.",
             "user_context": user_context,
             "citations": self._build_citations(retrieved_chunks),
             "graph_traversal": graph_traversals,
             "conflicts": [],
-            "related_actions": ["Contact CSE Department Helpdesk"]
+            "related_actions": [
+                "Call PDEU Reception (+91 79 2327 5060)",
+                "Contact CSE Department Helpdesk",
+                "PDEU Tuition Fees"
+            ]
         }
 
     def _build_citations(self, chunks: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -1356,12 +1565,12 @@ class LLMGateway:
             "conflicts": conflicts
         }
         system_instruction = (
-            "You are Anveshan, the official AI academic copilot for Pandit Deendayal Energy University (PDEU).\n"
+            "You are PDEU Assistant, the official AI academic copilot for Pandit Deendayal Energy University (PDEU).\n"
             "Style and Tone Requirements:\n"
             "1. Format direct answers cleanly using relevant emojis (🎓 for degrees/fees, 🏠 for hostels, 💰 for financial/costs, 💼 for placements, 📜 for regulations, 👨‍🏫 for professors).\n"
             "2. Always conclude direct_answer with a polite, relevant follow-up question (e.g., 'Would you like fee details for a specific program?').\n"
             "3. In 'related_actions', always provide 3 to 4 concise, relevant quick-reply options (e.g., ['B.Tech Programs', 'Hostel & Mess', 'Scholarship Options']).\n"
-            "4. Ground strictly on PDEU facts. Never hallucinate. If evidence is insufficient, set status to INSUFFICIENT_EVIDENCE.\n"
+            "4. Ground strictly on PDEU facts. Never hallucinate. If evidence or relevant information is not available, set status to INSUFFICIENT_EVIDENCE and ALWAYS provide the official PDEU contact number: Phone: +91 79 2327 5060 / +91 79 2327 5000 | Admissions: +91 79 2327 5098 | Email: info@pdeu.ac.in.\n"
             "5. Return ONLY a valid JSON object with keys: status, direct_answer, explanation, citations, graph_traversal, conflicts, related_actions."
         )
         async with httpx.AsyncClient(timeout=15.0) as client:

@@ -14,6 +14,8 @@ export interface ParsedStudentInfo {
   rollNumber?: string;
   rollCode?: string;
   currentSemester?: number;
+  isPassedOut?: boolean;
+  currentStatus?: string;
   academicYear?: string;
   role: 'student' | 'admin' | 'faculty';
   completedCourses?: string[];
@@ -137,13 +139,25 @@ export function parsePDPUEmail(rawInput: string): ParsedStudentInfo {
   const subdomainParts = (domain || '').split('.');
   const schoolSub = subdomainParts.length >= 3 && !['pdpu', 'pdeu'].includes(subdomainParts[0]) ? subdomainParts[0] : null;
 
-  // Pattern: e.g. 23bcp116 (2 digits year + 3-4 letters branch + 1-4 digits roll)
-  const studentMatch = local.match(/^([0-9]{2})([a-z]{3,4})([0-9]{1,4})$/);
+  // Support either full roll (e.g. 21bcp088 or 21bcp) or 4-digit batch year (e.g. 2025 or 2026)
+  let studentMatch = local.match(/^([0-9]{2})([a-z]{2,4})([0-9]{0,4})$/);
+  let explicitGradYear: number | null = null;
+
+  if (!studentMatch) {
+    const yearMatch = local.match(/^(?:batch)?(20[12][0-9])$/);
+    if (yearMatch) {
+      explicitGradYear = parseInt(yearMatch[1], 10);
+      const admY = explicitGradYear - 4;
+      const admShort = String(admY).slice(-2);
+      studentMatch = [local, admShort, 'bcp', '001'] as any;
+    }
+  }
+
   if (studentMatch) {
     const admYearShort = studentMatch[1];
     const admYear = 2000 + parseInt(admYearShort, 10);
     const branchCode = studentMatch[2];
-    const roll = studentMatch[3];
+    const roll = studentMatch[3] || '001';
     const canonicalRoll = `${admYearShort.toUpperCase()}${branchCode.toUpperCase()}${roll}`;
 
     const config = BRANCH_MAP[branchCode] || {
@@ -160,14 +174,17 @@ export function parsePDPUEmail(rawInput: string): ParsedStudentInfo {
     else if (schoolSub === 'sls') school = 'School of Liberal Studies (SLS)';
     else if (schoolSub === 'spm' || schoolSub === 'som') school = 'School of Management (SoM)';
 
-    const gradYear = admYear + config.duration;
+    const gradYear = explicitGradYear || (admYear + config.duration);
     const batch = String(gradYear);
     const cohortString = `${admYear}-${gradYear}`;
 
     // Anchor: 2026-2027 Academic Year
+    // Any batch with graduation year <= 2026 (e.g. Batch 2026, 2025, 2024...) is "Passed out"
     const currentYear = 2026;
     const yearsDone = currentYear - admYear;
-    const currentSem = Math.min(config.duration * 2, Math.max(1, yearsDone * 2 + 1));
+    const isPassedOut = gradYear <= 2026;
+    const currentSem = isPassedOut ? (config.duration * 2) : Math.min(config.duration * 2, Math.max(1, yearsDone * 2 + 1));
+    const currentStatus = isPassedOut ? 'Passed out' : `Semester ${currentSem}`;
 
     // Curriculum foundation for B.Tech CSE (e.g. 23BCP116)
     const completedCourses = branchCode === 'bcp' || branchCode === 'bcs'
@@ -212,6 +229,8 @@ export function parsePDPUEmail(rawInput: string): ParsedStudentInfo {
       rollNumber: canonicalRoll,
       rollCode: roll,
       currentSemester: currentSem,
+      isPassedOut,
+      currentStatus,
       academicYear: '2026-2027',
       role: 'student',
       completedCourses,
@@ -235,6 +254,8 @@ export function parsePDPUEmail(rawInput: string): ParsedStudentInfo {
     rollNumber: isAdmin ? 'FAC-001' : local.toUpperCase(),
     rollCode: '001',
     currentSemester: 0,
+    isPassedOut: false,
+    currentStatus: isAdmin ? 'Administration' : 'Faculty',
     academicYear: '2026-2027',
     role: isAdmin ? 'admin' : 'faculty'
   };

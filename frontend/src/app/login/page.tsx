@@ -161,8 +161,8 @@ export default function LoginPage() {
                   </div>
                   <div className="p-2 rounded-xl bg-white border border-blue-100">
                     <span className="text-slate-500 block text-[10px]">Academic Status</span>
-                    <strong className="text-emerald-700 font-bold">
-                      Semester {parsedEmailInfo.currentSemester} (4th Year)
+                    <strong className={parsedEmailInfo.isPassedOut ? 'text-amber-700 font-bold' : 'text-emerald-700 font-bold'}>
+                      {parsedEmailInfo.currentStatus || (parsedEmailInfo.isPassedOut ? 'Passed out' : `Semester ${parsedEmailInfo.currentSemester}`)}
                     </strong>
                   </div>
                 </div>

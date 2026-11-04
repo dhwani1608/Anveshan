@@ -95,7 +95,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 semester: parsedStudent.currentSemester || 7,
                 program: parsedStudent.program || 'B.Tech Computer Engineering',
                 roll: parsedStudent.rollNumber || '23BCP116',
-                description: `${parsedStudent.rollNumber} • ${parsedStudent.program} • ${parsedStudent.school}`
+                description: `${parsedStudent.rollNumber} • ${parsedStudent.program} • ${parsedStudent.isPassedOut ? 'Passed out' : (parsedStudent.currentStatus || 'Semester ' + parsedStudent.currentSemester)}`
               });
               setUser({
                 id: `usr_${parsedStudent.rollNumber?.toLowerCase() || 'student'}`,
@@ -208,7 +208,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       semester: parsed.currentSemester || 7,
       program: parsed.program || 'B.Tech Computer Engineering',
       roll: parsed.rollNumber || 'STUDENT',
-      description: `${parsed.rollNumber} • ${parsed.program} • ${parsed.school}`
+      description: `${parsed.rollNumber} • ${parsed.program} • ${parsed.isPassedOut ? 'Passed out' : (parsed.currentStatus || 'Semester ' + parsed.currentSemester)}`
     };
 
     setUser(studentUser);

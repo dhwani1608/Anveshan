@@ -283,10 +283,11 @@ export const AssistantChat: React.FC<AssistantChatProps> = () => {
         {
           id: `err_${Date.now()}`,
           sender: 'assistant',
-          content: 'I encountered an issue verifying official records. Please try again.',
+          content: 'Relevant information could not be retrieved at this moment.',
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           status: 'INSUFFICIENT_EVIDENCE',
-          direct_answer: 'Unable to connect to PDEU Grounded Engine. Please check your network and try again.'
+          direct_answer: 'Relevant official information could not be retrieved at this moment.\n\n📞 **For official assistance, please contact PDEU**:\n• **Reception / EPABX**: +91 79 2327 5060 / +91 79 2327 5000\n• **Admissions Helpline**: +91 79 2327 5098 / +91 79 2327 5077\n• **Email**: info@pdeu.ac.in',
+          related_actions: ['Call PDEU Reception (+91 79 2327 5060)', 'PDEU Tuition Fees', 'Merit Scholarships']
         }
       ]);
     } finally {
@@ -311,7 +312,17 @@ export const AssistantChat: React.FC<AssistantChatProps> = () => {
     { label: '🎓 PDEU Accreditation & NIRF', query: 'What is PDEU NAAC accreditation score and NIRF ranking?' }
   ];
 
-  const activeStarterPrompts = isGuest ? guestStarterPrompts : studentStarterPrompts;
+  const alumniStarterPrompts = [
+    { label: '📜 Official Transcripts Request', query: 'How can I request official transcripts and grade cards from PDEU?' },
+    { label: '🎓 Degree Certificate Verification', query: 'What is the procedure for degree certificate verification or duplicate degree at PDEU?' },
+    { label: '🌐 PDEU Alumni Association', query: 'How do I register for the official PDEU Alumni Association network?' },
+    { label: '📄 Migration Certificate Procedure', query: 'What is the process to obtain a Migration Certificate from PDEU?' },
+    { label: '💼 Placement & Alumni Records', query: 'What were the placement statistics and top recruiters for Batch ' + (studentInfo?.batch || '2025') + '?' }
+  ];
+
+  const activeStarterPrompts = isGuest
+    ? guestStarterPrompts
+    : (studentInfo?.isPassedOut ? alumniStarterPrompts : studentStarterPrompts);
 
   return (
     <div className="relative flex flex-col h-full w-full justify-between bg-[#f0f2f5] text-slate-900 font-sans min-h-0 overflow-hidden">
@@ -414,7 +425,9 @@ export const AssistantChat: React.FC<AssistantChatProps> = () => {
                       </div>
                       <div>
                         <span className="text-slate-400 block text-[9px] uppercase font-bold">Batch & Cohort</span>
-                        <span className="font-bold text-red-700">Batch {parsedPreview.batch}</span>
+                        <span className="font-bold text-red-700">
+                          Batch {parsedPreview.batch} {parsedPreview.isPassedOut && <span className="text-amber-700 text-[10px] font-semibold">(Alumni)</span>}
+                        </span>
                       </div>
                       <div>
                         <span className="text-slate-400 block text-[9px] uppercase font-bold">School</span>
@@ -422,7 +435,13 @@ export const AssistantChat: React.FC<AssistantChatProps> = () => {
                       </div>
                       <div>
                         <span className="text-slate-400 block text-[9px] uppercase font-bold">Current Status</span>
-                        <span className="font-bold text-slate-800">Semester {parsedPreview.currentSemester}</span>
+                        <span className={`font-bold inline-block ${
+                          parsedPreview.isPassedOut
+                            ? 'text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200'
+                            : 'text-slate-800'
+                        }`}>
+                          {parsedPreview.currentStatus || (parsedPreview.isPassedOut ? 'Passed out' : `Semester ${parsedPreview.currentSemester}`)}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -554,9 +573,9 @@ export const AssistantChat: React.FC<AssistantChatProps> = () => {
             <div className="flex items-center gap-2 min-w-0">
               {studentInfo ? (
                 <div className="flex items-center gap-1.5 truncate">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                  <span className={`w-2 h-2 rounded-full ${studentInfo.isPassedOut ? 'bg-amber-500' : 'bg-emerald-500'} shrink-0`} />
                   <span className="font-semibold text-slate-700 truncate text-[11px]">
-                    🎓 <strong className="text-red-700">{studentInfo.rollNumber}</strong> • {studentInfo.program}
+                    🎓 <strong className="text-red-700">{studentInfo.rollNumber}</strong> • {studentInfo.program} (Batch {studentInfo.batch}{studentInfo.isPassedOut ? ', Passed out' : ''})
                   </span>
                 </div>
               ) : guestInfo ? (
@@ -610,9 +629,20 @@ export const AssistantChat: React.FC<AssistantChatProps> = () => {
               <div className="bg-white border border-slate-200/90 rounded-2xl rounded-tl-none p-3.5 shadow-xs text-xs sm:text-sm text-slate-800 space-y-2">
                 {studentInfo ? (
                   <p className="leading-relaxed">
-                    Hello <strong>{studentInfo.rollNumber === '23BCP116' ? 'Dhwani Vyas' : studentInfo.rollNumber}</strong>! 👋 Welcome to <strong>PDEU Assistant</strong>. I have loaded your <strong>{studentInfo.program}</strong> academic profile for <strong>Batch {studentInfo.batch} (Semester {studentInfo.currentSemester})</strong>.
-                    <br /><br />
-                    How can I assist you today? You can ask about your syllabus, course prerequisites, attendance regulations, or campus placements!
+                    Hello <strong>{studentInfo.rollNumber === '23BCP116' ? 'Dhwani Vyas' : studentInfo.rollNumber}</strong>! 👋 Welcome to <strong>PDEU Assistant</strong>.{' '}
+                    {studentInfo.isPassedOut ? (
+                      <>
+                        I have loaded your <strong>{studentInfo.program}</strong> alumni profile for <strong>Batch {studentInfo.batch} (Passed out)</strong>.
+                        <br /><br />
+                        How can I assist you today? You can ask about official transcripts, degree verification, migration certificates, or PDEU alumni services!
+                      </>
+                    ) : (
+                      <>
+                        I have loaded your <strong>{studentInfo.program}</strong> academic profile for <strong>Batch {studentInfo.batch} (Semester {studentInfo.currentSemester})</strong>.
+                        <br /><br />
+                        How can I assist you today? You can ask about your syllabus, course prerequisites, attendance regulations, or campus placements!
+                      </>
+                    )}
                   </p>
                 ) : guestInfo ? (
                   <p className="leading-relaxed">
@@ -669,6 +699,54 @@ export const AssistantChat: React.FC<AssistantChatProps> = () => {
                   <div className="flex flex-col items-start pr-4 sm:pr-8 max-w-[92%] sm:max-w-[85%] space-y-1.5">
                     <div className="bg-white border border-slate-200/90 rounded-2xl rounded-tl-none p-3.5 shadow-xs text-xs sm:text-sm text-slate-800 space-y-2">
                       <FormattedText content={msg.direct_answer || msg.content} />
+
+                      {/* Interactive PDEU Helpdesk Card when information is not available / insufficient evidence */}
+                      {(msg.status === 'INSUFFICIENT_EVIDENCE' ||
+                        (msg.direct_answer &&
+                          (msg.direct_answer.includes('+91 79 2327 5060') ||
+                            msg.direct_answer.toLowerCase().includes('not available') ||
+                            msg.direct_answer.toLowerCase().includes('could not be located')))) && (
+                        <div className="mt-2 p-2.5 rounded-xl bg-gradient-to-r from-red-50/90 via-amber-50/60 to-red-50/50 border border-red-200/80 text-[11px] space-y-1.5 animate-in fade-in">
+                          <div className="flex items-center gap-1.5 font-bold text-red-800 text-[11px]">
+                            <Phone className="w-3.5 h-3.5 text-red-600 shrink-0" />
+                            <span>PDEU Official Helpdesk & Inquiries</span>
+                          </div>
+                          <p className="text-[10px] text-slate-600 leading-tight">
+                            Have specific queries not covered in handbooks? Connect directly with PDEU:
+                          </p>
+                          <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                            <a
+                              href="tel:+917923275060"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-red-600 text-white font-bold text-[10px] hover:bg-red-700 shadow-2xs transition-colors"
+                            >
+                              <Phone className="w-2.5 h-2.5" />
+                              <span>+91 79 2327 5060</span>
+                            </a>
+                            <a
+                              href="tel:+917923275000"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white border border-red-200 text-red-700 font-bold text-[10px] hover:bg-red-50 shadow-2xs transition-colors"
+                            >
+                              <Phone className="w-2.5 h-2.5" />
+                              <span>+91 79 2327 5000</span>
+                            </a>
+                            <a
+                              href="tel:+917923275098"
+                              className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-white border border-slate-200 text-slate-700 font-medium text-[10px] hover:bg-slate-50 transition-colors"
+                              title="Admissions Helpline"
+                            >
+                              <Phone className="w-2.5 h-2.5 text-slate-500" />
+                              <span>Admissions: 5098</span>
+                            </a>
+                            <a
+                              href="mailto:info@pdeu.ac.in"
+                              className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-white border border-slate-200 text-slate-700 font-medium text-[10px] hover:bg-slate-50 transition-colors"
+                            >
+                              <Mail className="w-2.5 h-2.5 text-slate-500" />
+                              <span>info@pdeu.ac.in</span>
+                            </a>
+                          </div>
+                        </div>
+                      )}
 
                       {/* Single Discreet Citation Link */}
                       {msg.citations && msg.citations.length > 0 && (

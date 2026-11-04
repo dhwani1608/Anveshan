@@ -216,6 +216,7 @@ Return ONLY a JSON object with keys:
         is_scholarship = any(w in q for w in ["scholarship", "financial aid", "waiver", "freeship", "merit scholarship", "stipend"])
         is_admissions = any(w in q for w in ["admission", "acpc", "jee", "gujcet", "cutoff", "quota", "seat", "eligibility"])
         is_anti_ragging = any(w in q for w in ["ragging", "harassment", "helpline", "complaint", "anti-ragging"])
+        is_alumni = any(w in q for w in ["transcript", "degree certificate", "migration certificate", "duplicate degree", "alumni", "passed out", "wes", "grade card"])
 
         intent = "general"
         target_year_or_sem = None
@@ -320,6 +321,12 @@ Return ONLY a JSON object with keys:
             preferred_doc_ids = ["doc_pdeu_anti_ragging_policy"]
             expanded_query = "PDEU Anti Ragging policy 24x7 toll free helpline number 1800-180-5522 zero tolerance"
 
+        elif is_alumni:
+            intent = "alumni_services"
+            positive_keywords = ["Official Transcripts", "Degree Certificate", "Migration Certificate", "Controller of Examinations", "Alumni Association"]
+            preferred_doc_ids = ["doc_pdeu_acad_reg"]
+            expanded_query = "PDEU Controller of Examinations official transcripts degree certificates verification migration alumni"
+
         else:
             expanded_query = raw_query
 
@@ -373,7 +380,7 @@ COMMUNICATION STYLE REQUIREMENTS (modeled like a high-end university assistant):
 2. CLEAN FORMATTING: Use bold text, bullet points with relevant emojis (🎓 for degrees/programs, 💰 for fees, 🏠 for hostels, 🎖️ for scholarships, 💼 for placements, 👨‍🏫 for faculty, 📋 for rules).
 3. FOLLOW-UP PROMPT: Conclude your direct answer with a polite, natural follow-up question (e.g. "Would you like fee details for a specific program?" or "Would you like to know about hostel accommodations?").
 4. SUGGESTIONS: In "related_actions", provide 3 to 4 concise quick-reply buttons (e.g. ["B.Tech Programs", "Hostel & Mess", "Merit Scholarships"]).
-5. FACTUAL GROUNDING: Rely strictly on provided evidence or student context. Never hallucinate.
+5. FACTUAL GROUNDING: Rely strictly on provided evidence or student context. Never hallucinate. If evidence or relevant information is not available, set status to "INSUFFICIENT_EVIDENCE" and always provide the official PDEU contact details: Phone: +91 79 2327 5060 / +91 79 2327 5000 | Admissions: +91 79 2327 5098 | Email: info@pdeu.ac.in.
 
 Return ONLY a valid JSON object matching this schema:
 {
