@@ -89,7 +89,7 @@ export const FloatingAssistant: React.FC = () => {
           <div className="hidden sm:flex items-center gap-1.5 bg-white/95 backdrop-blur-md hover:bg-orange-50 text-slate-900 pl-4 pr-3 py-2 rounded-full shadow-xl border border-slate-200 hover:border-[#e87722] text-xs font-bold transition-all hover:scale-105 group">
             <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-ping mr-1" />
             <span className={theme === 'crimson' ? 'text-red-700 group-hover:text-red-800' : 'text-[#002b49] group-hover:text-[#e87722]'}>
-              Ask Anveshan AI
+              Ask PDEU Assistant
             </span>
             
             {/* Quick Mode Button in Pill */}
@@ -151,7 +151,7 @@ export const FloatingAssistant: React.FC = () => {
 
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-extrabold tracking-tight truncate">Anveshan Assistant</h3>
+                  <h3 className="text-sm font-extrabold tracking-tight truncate">PDEU Assistant</h3>
                   <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
                 </div>
                 <div className="text-[11px] font-medium text-red-100 flex items-center gap-1.5 opacity-90 truncate">

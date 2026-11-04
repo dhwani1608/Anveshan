@@ -3,32 +3,46 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, Persona } from '@/lib/types';
 import { fetchPersonas, loginUser } from '@/lib/api';
-import { parsePDPUEmail } from '@/lib/emailParser';
+import { parsePDPUEmail, ParsedStudentInfo } from '@/lib/emailParser';
+
+export interface GuestInfo {
+  name: string;
+  email: string;
+  phone: string;
+  discipline: string;
+  program: string;
+  state: string;
+}
 
 interface AuthContextType {
   user: User | null;
   token: string | null;
   personas: Persona[];
   activePersona: Persona | null;
+  studentInfo: ParsedStudentInfo | null;
+  guestInfo: GuestInfo | null;
   isGuest: boolean;
   switchPersona: (personaId: string) => Promise<void>;
   login: (email: string, pass: string) => Promise<void>;
+  loginWithStudentEmail: (rawEmailOrRoll: string) => ParsedStudentInfo;
+  setGuestProfile: (guest: GuestInfo) => void;
   continueAsGuest: () => void;
   logout: () => void;
+  resetSession: () => void;
   isLoading: boolean;
 }
 
 const GUEST_PERSONA: Persona = {
   id: 'guest',
-  name: 'Guest Explorer',
+  name: 'Guest Aspirant',
   role: 'student',
   email: 'guest@pdpu.ac.in',
   password: '',
   batch: '2027',
-  semester: 7,
-  program: 'B.Tech (Guest Context)',
+  semester: 1,
+  program: 'Prospective Student (Admissions Context)',
   roll: 'GUEST',
-  description: 'Unauthenticated Guest Visitor (PDEU Knowledge Base & Assistant Active)'
+  description: 'Unauthenticated Guest Visitor (PDEU Knowledge Base & Admissions Active)'
 };
 
 const AuthContext = createContext<AuthContextType>({
@@ -36,11 +50,16 @@ const AuthContext = createContext<AuthContextType>({
   token: null,
   personas: [],
   activePersona: null,
+  studentInfo: null,
+  guestInfo: null,
   isGuest: true,
   switchPersona: async () => {},
   login: async () => {},
+  loginWithStudentEmail: () => ({ isValid: false, isStudent: false, email: '', role: 'student' }),
+  setGuestProfile: () => {},
   continueAsGuest: () => {},
   logout: () => {},
+  resetSession: () => {},
   isLoading: false
 });
 
@@ -49,6 +68,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [token, setToken] = useState<string | null>(null);
   const [personas, setPersonas] = useState<Persona[]>([]);
   const [activePersona, setActivePersona] = useState<Persona | null>(null);
+  const [studentInfo, setStudentInfo] = useState<ParsedStudentInfo | null>(null);
+  const [guestInfo, setGuestInfo] = useState<GuestInfo | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
@@ -57,74 +78,191 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const personaList = await fetchPersonas();
         setPersonas(personaList);
 
-        // Check if there's an existing session in localStorage
-        const savedToken = typeof window !== 'undefined' ? localStorage.getItem('anveshan_token') : null;
-        const savedUserStr = typeof window !== 'undefined' ? localStorage.getItem('anveshan_user') : null;
-
-        if (savedToken && savedUserStr) {
+        // Check if there's an existing student session in localStorage
+        const savedStudentStr = typeof window !== 'undefined' ? localStorage.getItem('pdeu_student_session') : null;
+        if (savedStudentStr) {
           try {
-            const savedUser = JSON.parse(savedUserStr);
-            setUser(savedUser);
-            setToken(savedToken);
-
-            const parsed = parsePDPUEmail(savedUser.email);
-            setActivePersona({
-              id: savedUser.id,
-              name: savedUser.full_name,
-              role: savedUser.role,
-              email: savedUser.email,
-              password: '',
-              batch: savedUser.profile?.batch || parsed.batch || '2027',
-              semester: savedUser.profile?.current_semester || parsed.currentSemester || 7,
-              program: savedUser.profile?.program || parsed.program || 'B.Tech',
-              roll: savedUser.profile?.roll_number || parsed.rollNumber || 'STUDENT',
-              description: `${savedUser.email} • ${parsed.school || 'PDEU'}`
-            });
-            return;
+            const parsedStudent: ParsedStudentInfo = JSON.parse(savedStudentStr);
+            if (parsedStudent && parsedStudent.isValid) {
+              setStudentInfo(parsedStudent);
+              setActivePersona({
+                id: parsedStudent.rollNumber ? parsedStudent.rollNumber.toLowerCase() : 'student',
+                name: parsedStudent.rollNumber ? `Student (${parsedStudent.rollNumber})` : 'PDEU Student',
+                role: 'student',
+                email: parsedStudent.email,
+                password: '',
+                batch: parsedStudent.batch || '2027',
+                semester: parsedStudent.currentSemester || 7,
+                program: parsedStudent.program || 'B.Tech Computer Engineering',
+                roll: parsedStudent.rollNumber || '23BCP116',
+                description: `${parsedStudent.rollNumber} • ${parsedStudent.program} • ${parsedStudent.school}`
+              });
+              setUser({
+                id: `usr_${parsedStudent.rollNumber?.toLowerCase() || 'student'}`,
+                email: parsedStudent.email,
+                full_name: parsedStudent.rollNumber === '23BCP116' ? 'Dhwani Vyas' : `Student ${parsedStudent.rollNumber}`,
+                role: 'student',
+                organization_id: 'PDEU',
+                profile: {
+                  id: `prof_${parsedStudent.rollNumber?.toLowerCase()}`,
+                  roll_number: parsedStudent.rollNumber || '23BCP116',
+                  program: parsedStudent.program || 'B.Tech Computer Engineering',
+                  department: parsedStudent.department || 'Computer Science & Engineering',
+                  batch: parsedStudent.batch || '2027',
+                  current_academic_year: parsedStudent.academicYear || '2026-2027',
+                  current_semester: parsedStudent.currentSemester || 7,
+                  completed_courses: parsedStudent.completedCourses || [
+                    'CS201 Data Structures',
+                    'CS202 Discrete Mathematics',
+                    'CS301 Database Systems',
+                    'CS302 Design & Analysis of Algorithms'
+                  ],
+                  cgpa: 8.92
+                }
+              });
+              return;
+            }
           } catch (e) {
-            console.warn('Invalid saved session');
+            console.warn('Failed to parse saved student session:', e);
           }
         }
 
-        // Default Persona for immediate demonstration
-        const defaultPersona = personaList.find(p => p.id === 'dhwani') || personaList[0];
-        if (defaultPersona) {
-          setActivePersona(defaultPersona);
-          setUser({
-            id: defaultPersona.id,
-            email: defaultPersona.email,
-            full_name: defaultPersona.name,
-            role: defaultPersona.role as any,
-            organization_id: 'PDEU',
-            profile: {
-              id: 'prof_dhwani',
-              roll_number: defaultPersona.roll,
-              program: defaultPersona.program,
-              department: 'Computer Science & Engineering',
-              batch: defaultPersona.batch,
-              current_academic_year: '2026-2027',
-              current_semester: defaultPersona.semester,
-              completed_courses: [
-                'CS201 Data Structures',
-                'CS202 Discrete Mathematics',
-                'CS301 Database Systems',
-                'CS302 Design & Analysis of Algorithms'
-              ],
-              cgpa: 8.92
+        // Check if there's a saved guest session in localStorage
+        const savedGuestStr = typeof window !== 'undefined' ? localStorage.getItem('pdeu_guest_session') : null;
+        if (savedGuestStr) {
+          try {
+            const parsedGuest: GuestInfo = JSON.parse(savedGuestStr);
+            if (parsedGuest && parsedGuest.name) {
+              setGuestInfo(parsedGuest);
+              setActivePersona({
+                id: 'guest',
+                name: parsedGuest.name,
+                role: 'student',
+                email: parsedGuest.email || 'guest@pdpu.ac.in',
+                password: '',
+                batch: '2027',
+                semester: 1,
+                program: parsedGuest.program || 'Aspirant Program',
+                roll: 'GUEST',
+                description: `Guest Aspirant • ${parsedGuest.discipline} • ${parsedGuest.program}`
+              });
+              return;
             }
-          });
-        } else {
-          setActivePersona(GUEST_PERSONA);
+          } catch (e) {
+            console.warn('Failed to parse saved guest session:', e);
+          }
         }
+
+        // If no saved session, default to null so user gets prompted to choose Guest or Student!
+        setActivePersona(null);
+        setStudentInfo(null);
+        setGuestInfo(null);
       } catch (err) {
         console.error('Failed to init auth context:', err);
-        setActivePersona(GUEST_PERSONA);
+        setActivePersona(null);
       } finally {
         setIsLoading(false);
       }
     }
     initAuth();
   }, []);
+
+  const loginWithStudentEmail = (rawEmailOrRoll: string): ParsedStudentInfo => {
+    const parsed = parsePDPUEmail(rawEmailOrRoll);
+    if (!parsed.isValid) {
+      return parsed;
+    }
+
+    const isDhwani = parsed.rollNumber === '23BCP116';
+    const studentUser: User = {
+      id: `usr_${parsed.rollNumber?.toLowerCase()}`,
+      email: parsed.email,
+      full_name: isDhwani ? 'Dhwani Vyas' : `Student ${parsed.rollNumber}`,
+      role: 'student',
+      organization_id: 'PDEU',
+      profile: {
+        id: `prof_${parsed.rollNumber?.toLowerCase()}`,
+        roll_number: parsed.rollNumber || 'STUDENT',
+        program: parsed.program || 'B.Tech Computer Engineering',
+        department: parsed.department || 'Computer Science & Engineering',
+        batch: parsed.batch || '2027',
+        current_academic_year: parsed.academicYear || '2026-2027',
+        current_semester: parsed.currentSemester || 7,
+        completed_courses: parsed.completedCourses || [
+          'CS201 Data Structures',
+          'CS202 Discrete Mathematics',
+          'CS301 Database Systems',
+          'CS302 Design & Analysis of Algorithms'
+        ],
+        cgpa: 8.92
+      }
+    };
+
+    const newPersona: Persona = {
+      id: parsed.rollNumber?.toLowerCase() || 'student',
+      name: isDhwani ? 'Dhwani Vyas' : `Student ${parsed.rollNumber}`,
+      role: 'student',
+      email: parsed.email,
+      password: '',
+      batch: parsed.batch || '2027',
+      semester: parsed.currentSemester || 7,
+      program: parsed.program || 'B.Tech Computer Engineering',
+      roll: parsed.rollNumber || 'STUDENT',
+      description: `${parsed.rollNumber} • ${parsed.program} • ${parsed.school}`
+    };
+
+    setUser(studentUser);
+    setStudentInfo(parsed);
+    setGuestInfo(null);
+    setActivePersona(newPersona);
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('pdeu_student_session', JSON.stringify(parsed));
+      localStorage.removeItem('pdeu_guest_session');
+    }
+
+    return parsed;
+  };
+
+  const setGuestProfile = (guest: GuestInfo) => {
+    setGuestInfo(guest);
+    setStudentInfo(null);
+    setUser(null);
+
+    const guestPersona: Persona = {
+      id: 'guest',
+      name: guest.name || 'Guest Aspirant',
+      role: 'student',
+      email: guest.email || 'guest@pdpu.ac.in',
+      password: '',
+      batch: '2027',
+      semester: 1,
+      program: guest.program || 'Aspirant Program',
+      roll: 'GUEST',
+      description: `Guest Aspirant • ${guest.discipline} • ${guest.program}`
+    };
+
+    setActivePersona(guestPersona);
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('pdeu_guest_session', JSON.stringify(guest));
+      localStorage.removeItem('pdeu_student_session');
+    }
+  };
+
+  const resetSession = () => {
+    setUser(null);
+    setToken(null);
+    setActivePersona(null);
+    setStudentInfo(null);
+    setGuestInfo(null);
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('pdeu_student_session');
+      localStorage.removeItem('pdeu_guest_session');
+      localStorage.removeItem('anveshan_token');
+      localStorage.removeItem('anveshan_user');
+    }
+  };
 
   const switchPersona = async (personaId: string) => {
     const target = personas.find(p => p.id === personaId);
@@ -141,28 +279,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch (e) {
       console.error('Error switching persona:', e);
-      // Fallback local update
-      const fallbackUser: User = {
-        id: target.id,
-        email: target.email,
-        full_name: target.name,
-        role: target.role as any,
-        organization_id: 'PDEU',
-        profile: target.role === 'student' ? {
-          id: `prof_${target.id}`,
-          roll_number: target.roll,
-          program: target.program,
-          department: 'Computer Science & Engineering',
-          batch: target.batch,
-          current_academic_year: target.batch === '2027' ? '2026-2027' : '2024-2025',
-          current_semester: target.semester,
-          completed_courses: target.batch === '2027'
-            ? ['CS201 Data Structures', 'CS302 Design & Analysis of Algorithms', 'CS301 DBMS']
-            : ['CS201 Data Structures', 'CS301 DBMS'],
-          cgpa: target.batch === '2027' ? 8.92 : 7.85
-        } : null
-      };
-      setUser(fallbackUser);
     } finally {
       setIsLoading(false);
     }
@@ -179,7 +295,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.setItem('anveshan_user', JSON.stringify(authData.user));
       }
 
-      // Synchronize activePersona with parsed student email info
       const parsed = parsePDPUEmail(authData.user.email);
       setActivePersona({
         id: authData.user.id,
@@ -201,24 +316,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const continueAsGuest = () => {
     setUser(null);
     setToken(null);
-    setActivePersona(GUEST_PERSONA);
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('anveshan_token');
-      localStorage.removeItem('anveshan_user');
-    }
+    setGuestProfile({
+      name: 'Guest Explorer',
+      email: 'guest@pdpu.ac.in',
+      phone: '',
+      discipline: 'School of Technology (SoT)',
+      program: 'B.Tech. Computer Engineering',
+      state: 'Gujarat'
+    });
   };
 
   const logout = () => {
-    setUser(null);
-    setToken(null);
-    setActivePersona(GUEST_PERSONA);
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('anveshan_token');
-      localStorage.removeItem('anveshan_user');
-    }
+    resetSession();
   };
 
-  const isGuest = !user || user.id === 'guest';
+  const isGuest = !studentInfo && (!user || user.id === 'guest');
 
   return (
     <AuthContext.Provider
@@ -227,11 +339,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         token,
         personas,
         activePersona,
+        studentInfo,
+        guestInfo,
         isGuest,
         switchPersona,
         login,
+        loginWithStudentEmail,
+        setGuestProfile,
         continueAsGuest,
         logout,
+        resetSession,
         isLoading
       }}
     >
