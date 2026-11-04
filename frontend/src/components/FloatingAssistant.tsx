@@ -140,148 +140,52 @@ export const FloatingAssistant: React.FC = () => {
       {/* Main AI Window / Sidebar Drawer */}
       {isAiOpen && (
         <div className={`${getContainerClasses()} ${getContainerBackground()}`}>
-          {/* Top Assistant Navigation & Controls Bar (Inspired by university assistant topbars) */}
-          <div className={`px-4 py-3 sm:px-5 sm:py-3.5 ${getHeaderStyles()} flex items-center justify-between gap-3 shadow-md shrink-0`}>
-            {/* Identity & Status Badge */}
-            <div className="flex items-center gap-3 min-w-0">
-              {/* PDEU Emblem Crest */}
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#002b49] to-[#e87722] p-0.5 shadow-md shrink-0 flex items-center justify-center">
-                <div className="w-full h-full bg-[#001b30] rounded-[14px] flex items-center justify-center border border-amber-400/30">
-                  <span className="font-serif font-black text-amber-400 text-base leading-none">P</span>
-                </div>
+          {/* Top Assistant Navigation Bar (Clean & uncluttered, matching university assistants) */}
+          <div className="px-4 py-3 bg-red-600 text-white flex items-center justify-between shadow-sm shrink-0">
+            {/* Identity & Status */}
+            <div className="flex items-center gap-2.5 min-w-0">
+              {/* PDEU Logo Badge */}
+              <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center font-serif font-black text-red-700 text-base shadow-sm shrink-0">
+                P
               </div>
 
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <h3 className="text-sm font-extrabold tracking-tight truncate">Anveshan Assistant</h3>
-                  <span className="flex h-2.5 w-2.5 relative">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-                  </span>
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
                 </div>
-                <div className="text-[11px] font-medium flex items-center gap-2 opacity-90 truncate">
-                  <span className="text-emerald-400 font-semibold flex items-center gap-1">
-                    Connected
-                  </span>
-                  <span className="opacity-40">•</span>
-                  <span className="opacity-80 truncate">
-                    {!isGuest && user?.profile?.roll_number
-                      ? `${user.profile.roll_number} (${user.profile.batch || '2027'})`
-                      : 'PDEU Academic Portal'}
-                  </span>
+                <div className="text-[11px] font-medium text-red-100 flex items-center gap-1.5 opacity-90 truncate">
+                  <span>Connected</span>
                 </div>
               </div>
             </div>
 
-            {/* Quick Controls: Minimize, Theme Picker, View Mode Switcher & Close */}
-            <div className="flex items-center gap-1.5 shrink-0">
-              {/* Theme Dropdown / Picker */}
-              <div className="relative">
-                <button
-                  onClick={() => setShowThemeMenu(!showThemeMenu)}
-                  className="p-1.5 sm:px-2.5 sm:py-1 rounded-xl bg-black/20 hover:bg-black/35 text-xs font-semibold flex items-center gap-1.5 transition-all border border-white/10"
-                  title="Switch Color Theme"
-                >
-                  <Palette className="w-3.5 h-3.5 text-amber-300" />
-                  <span className="hidden sm:inline capitalize text-[11px]">{theme}</span>
-                </button>
-
-                {showThemeMenu && (
-                  <div className="absolute right-0 top-full mt-2 w-48 rounded-2xl bg-slate-900 border border-slate-700 shadow-2xl p-1.5 z-50 text-xs space-y-1 animate-in fade-in slide-in-from-top-1 text-slate-100">
-                    <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2 py-1">
-                      Choose Assistant Theme
-                    </div>
-                    {themeOptions.map((opt) => (
-                      <button
-                        key={opt.id}
-                        onClick={() => {
-                          setTheme(opt.id);
-                          setShowThemeMenu(false);
-                        }}
-                        className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl transition-all text-left ${
-                          theme === opt.id
-                            ? 'bg-[#e87722] text-white font-bold shadow-sm'
-                            : 'text-slate-200 hover:bg-slate-800'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2">
-                          <span>{opt.icon}</span>
-                          <span>{opt.label}</span>
-                        </div>
-                        <span className={`w-3 h-3 rounded-full border-2 ${opt.previewClass}`} />
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* View Mode Toggle: Sidebar 📌 vs Floating 🪟 vs Fullscreen ⛶ */}
-              <div className="hidden sm:flex items-center bg-black/20 rounded-xl p-0.5 border border-white/10 text-xs">
-                <button
-                  onClick={() => setViewMode('sidebar')}
-                  className={`p-1.5 rounded-lg transition-all ${
-                    viewMode === 'sidebar'
-                      ? 'bg-[#e87722] text-white font-bold shadow-sm'
-                      : 'opacity-70 hover:opacity-100 hover:bg-white/10'
-                  }`}
-                  title="Dock to Right Sidebar"
-                >
-                  <PanelRightOpen className="w-3.5 h-3.5" />
-                </button>
-
-                <button
-                  onClick={() => setViewMode('floating')}
-                  className={`p-1.5 rounded-lg transition-all ${
-                    viewMode === 'floating'
-                      ? 'bg-[#e87722] text-white font-bold shadow-sm'
-                      : 'opacity-70 hover:opacity-100 hover:bg-white/10'
-                  }`}
-                  title="Floating Window Mode"
-                >
-                  <MessageSquare className="w-3.5 h-3.5" />
-                </button>
-
-                <button
-                  onClick={() => setViewMode(viewMode === 'expanded' ? 'sidebar' : 'expanded')}
-                  className={`p-1.5 rounded-lg transition-all ${
-                    viewMode === 'expanded'
-                      ? 'bg-[#e87722] text-white font-bold shadow-sm'
-                      : 'opacity-70 hover:opacity-100 hover:bg-white/10'
-                  }`}
-                  title={viewMode === 'expanded' ? 'Restore Standard View' : 'Maximize Fullscreen'}
-                >
-                  {viewMode === 'expanded' ? (
-                    <Minimize2 className="w-3.5 h-3.5" />
-                  ) : (
-                    <Maximize2 className="w-3.5 h-3.5" />
-                  )}
-                </button>
-              </div>
-
+            {/* Window Controls: Only Minimize & Close */}
+            <div className="flex items-center gap-1 shrink-0">
               {/* Minimize Button (Matching — in CU assistant) */}
               <button
                 onClick={() => setIsAiOpen(false)}
-                className="p-1.5 rounded-xl opacity-80 hover:opacity-100 hover:bg-white/15 transition-colors"
+                className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors"
                 title="Minimize Assistant"
                 aria-label="Minimize"
               >
-                <Minus className="w-4 h-4 font-bold" />
+                <Minus className="w-4 h-4" />
               </button>
 
               {/* Close Button (Matching ✕ in CU assistant) */}
               <button
                 onClick={() => setIsAiOpen(false)}
-                className="p-1.5 rounded-xl opacity-80 hover:opacity-100 hover:bg-white/15 transition-colors"
+                className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors"
                 title="Close Assistant"
                 aria-label="Close"
               >
-                <X className="w-4 h-4 font-bold" />
+                <X className="w-4 h-4" />
               </button>
             </div>
           </div>
 
           {/* Interactive Chat Canvas Container */}
-          <div className="flex-1 overflow-hidden flex flex-col relative">
+          <div className="flex-1 overflow-hidden flex flex-col relative bg-white">
             <AssistantChat />
           </div>
         </div>
